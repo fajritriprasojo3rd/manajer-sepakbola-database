@@ -981,12 +981,15 @@ function renderBeranda(){
     cards+='<div class="card"><h3>Berita</h3>'+news3.map(function(n){return '<div class="news-item" style="margin-bottom:4px"><div class="head">'+n.t+'</div></div>';}).join('')+'</div>';
   }
   
-  cards+='<div class="card"><h3>Aksi Cepat</h3><div class="row">'+
+    cards+='<div class="card"><h3>Aksi Cepat</h3><div class="row">'+
+    // TOMBOL MAIN PERTANDINGAN YANG BARU DITAMBAHKAN
+    '<button class="btn primary" onclick="playRound()" style="width:100%;margin-bottom:10px;padding:15px;font-size:16px;">⚽ MAIN PERTANDINGAN</button>'+
+    // TOMBOL LAMA
     '<button class="btn" onclick="setMainTab(\'tim\')">Atur Skuad</button>'+
     '<button class="btn" onclick="setMainTab(\'bisnis\')">Transfer</button>'+
     '<button class="btn" onclick="setMainTab(\'kompetisi\')">Lihat Liga</button></div></div>';
   return cards;
-}
+      }
 
 function renderSquad(){
   var my=state.teams[state.myIdx];
