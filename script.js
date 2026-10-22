@@ -2010,6 +2010,18 @@ function ensureValidStartingXI() {
   }
 }
 
+// ==========================================
+// PATCH TAMBAHAN: TOMBOL AUTO XI
+// ==========================================
+function autoLineup() {
+  var my = state.teams[state.myIdx];
+  if (!my) return;
+  autoPickXI(my, my.formation || '4-3-3');
+  toast("Starting XI berhasil diatur otomatis!");
+  render();
+  saveGame();
+}
+
 window.onload = function() { 
   try { render(); } catch(e) { alert("Gagal memuat game: " + e.message); } 
 };
