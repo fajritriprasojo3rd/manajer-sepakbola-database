@@ -856,30 +856,56 @@ function playerNeedsReducedContract(p){
   return false;
 }
 
-/* ==================== VALIDASI STARTING XI ==================== */
-function ensureValidStartingXI() {
+/* ==================== FUNGSI AUTO LINE-UP ==================== */
+function autoLineup() {
   var my = state.teams[state.myIdx];
   if (!my) return;
   
-  // Pastikan array xi ada
-  if (!my.xi) my.xi = [];
-
-  var currentXI = my.xi.map(id => getP(my, id)).filter(Boolean);
-  var hasGK = currentXI.some(p => p.pos === 'GK');
+  var f = FORMATIONS[my.formation || '4-3-3'];
+  var xi = [];
+  var used = {};
   
-  // Jika tidak ada kiper, atau pemain kurang dari 11
-  if (!hasGK || currentXI.length < 11) {
-      // Gunakan fungsi autoPickXI bawaan game untuk merombak XI
-      autoPickXI(my, my.formation || '4-3-3');
+  // 1. Ambil 1 Kiper terbaik yang tidak cedera
+  var gks = my.players.filter(p => p.pos === 'GK' && p.injury === 0).sort((a,b) => b.rating - a.rating);
+  if (gks.length > 0) {
+      xi.push(gks[0].id);
+      used[gks[0].id] = true;
   }
-}
-
-function isXIValid() {
-  var my = state.teams[state.myIdx];
-  if (!my || !my.xi) return false;
-  var currentXI = my.xi.map(id => getP(my, id)).filter(Boolean);
-  var hasGK = currentXI.some(p => p.pos === 'GK');
-  return currentXI.length === 11 && hasGK;
+  
+  // 2. Ambil pemain untuk posisi lain (DEF, MID, FWD) sesuai formasi
+  ['DEF', 'MID', 'FWD'].forEach(function(pos) {
+      var need = f[pos].length;
+      var candidates = my.players.filter(p => p.pos === pos && !used[p.id] && p.injury === 0).sort((a,b) => b.rating - a.rating);
+      
+      for (var i = 0; i < need; i++) {
+          if (candidates[i]) {
+              xi.push(candidates[i].id);
+              used[candidates[i].id] = true;
+          }
+      }
+  });
+  
+  // 3. JIKA MASIH KURANG DARI 11, ambil pemain terbaik sisa (tambalan)
+  if (xi.length < 11) {
+      var remaining = my.players.filter(p => !used[p.id] && p.injury === 0).sort((a,b) => b.rating - a.rating);
+      for (var j = 0; j < remaining.length; j++) {
+          if (xi.length >= 11) break;
+          xi.push(remaining[j].id);
+          used[remaining[j].id] = true;
+      }
+  }
+  
+  // Pasang ke Starting XI
+  my.xi = xi.slice(0, 11); 
+  
+  if (my.xi.length === 11) {
+      toast("Starting XI berhasil diatur (11 Pemain)!");
+  } else {
+      toast("Gagal. Pemain tidak cukup atau banyak yang cedera.");
+  }
+  
+  render();
+  saveGame();
 }
 
 window.onload = function() { 
