@@ -1999,6 +1999,16 @@ function calcHomeMatchRevenue(home, away, hg, ag) {
   };
 }
 
+// ==========================================
+// PATCH TAMBAHAN: VALIDASI STARTING XI
+// ==========================================
+function ensureValidStartingXI() {
+  var my = state.teams[state.myIdx];
+  if (!my) return;
+  if (!my.xi || my.xi.length !== 11 || !checkXI(my)) {
+    autoPickXI(my, my.formation || '4-3-3');
+  }
+}
 
 window.onload = function() { 
   try { render(); } catch(e) { alert("Gagal memuat game: " + e.message); } 
