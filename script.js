@@ -2022,6 +2022,57 @@ function autoLineup() {
   saveGame();
 }
 
+// ==========================================
+// PATCH PERBAIKAN: AUTO XI (FIX 11/11 & KIPER)
+// ==========================================
+function autoPickXI(team, formation) {
+  var f = FORMATIONS[formation || '4-3-3'];
+  var xi = [];
+  var used = {};
+  var sortFn = function(a, b) {
+      var aFit = a.stamina >= 50 && !a.injury && !(a.suspension && a.suspension > 0);
+      var bFit = b.stamina >= 50 && !b.injury && !(b.suspension && b.suspension > 0);
+      if (aFit && !bFit) return -1;
+      if (!aFit && bFit) return 1;
+      return b.rating - a.rating;
+  };
+
+  ['GK', 'DEF', 'MID', 'FWD'].forEach(function(cat) {
+    var c = team.players.filter(function(p) { return p.pos === cat && !used[p.id]; });
+    c.sort(sortFn);
+    // Menangani format GK yang berupa angka (1) maupun array
+    var count = (typeof f[cat] === 'number') ? f[cat] : (f[cat] ? f[cat].length : 0);
+    for(var i = 0; i < count; i++) {
+      if (c[i]) {
+        xi.push(c[i].id);
+        used[c[i].id] = true;
+      }
+    }
+  });
+
+  // Fallback pengaman: Jika masih kurang dari 11 (karena cedera/skorsing), ambil pemain cadangan terbaik
+  if (xi.length < 11) {
+    var remaining = team.players.filter(function(p) { return !used[p.id]; });
+    remaining.sort(function(a, b) { return b.rating - a.rating; });
+    for(var i = 0; i < remaining.length && xi.length < 11; i++) {
+      xi.push(remaining[i].id);
+      used[remaining[i].id] = true;
+    }
+  }
+
+  team.xi = xi;
+}
+
+function autoLineup() {
+  var my = state.teams[state.myIdx];
+  if (!my) return;
+  autoPickXI(my, my.formation || '4-3-3');
+  toast("Starting XI berhasil diatur otomatis (11/11)!");
+  render();
+  saveGame();
+}
+
+
 window.onload = function() { 
   try { render(); } catch(e) { alert("Gagal memuat game: " + e.message); } 
 };
