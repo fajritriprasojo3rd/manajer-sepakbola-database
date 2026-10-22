@@ -346,15 +346,22 @@ function renderBeranda(){
   var pos=-1; for(var i=0;i<t1.length;i++){if(t1[i].idx===state.myIdx){pos=i+1;break;}}
   
   var isMatchDay = (state.dayInWeek >= 7);
-  var mainButton = '';
-  
-  if (isMatchDay) {
-    mainButton = '<button class="btn primary" onclick="playRound()" style="width:100%;margin-bottom:10px;padding:15px;font-size:16px;box-shadow:0 4px 15px rgba(46,204,113,0.4);">⚽ MAIN PERTANDINGAN</button>';
+  var isMatchDay = (state.dayInWeek >= 7);
+var mainButton = '';
+
+if (isMatchDay) {
+  // Cek apakah XI valid (11 orang & ada kiper)
+  if (isXIValid()) {
+      mainButton = '<button class="btn primary" onclick="playRound()" style="width:100%;margin-bottom:10px;padding:15px;font-size:16px;box-shadow:0 4px 15px rgba(46,204,113,0.4);">⚽ MAIN PERTANDINGAN</button>';
   } else {
-    var daysLeft = 7 - state.dayInWeek;
-    var nextDays = daysLeft < 2 ? daysLeft : 2;
-    mainButton = '<button class="btn" onclick="advanceDay()" style="width:100%;margin-bottom:10px;padding:15px;font-size:16px;background:#2c3e50;color:#fff;border:1px solid #34495e;">⏩ LANJUT (' + nextDays + ' Hari)</button>';
+      mainButton = '<button class="btn" disabled style="width:100%;margin-bottom:10px;padding:15px;font-size:14px;background:#3a1d20;color:#ff8f96;border:1px solid #e63946;">⚠️ STARTING XI BELUM VALID (Butuh 11 Pemain & 1 Kiper)</button>';
   }
+} else {
+  // ... (Biarkan kode tombol "Lanjut Hari" yang asli di sini)
+  var daysLeft = 7 - state.dayInWeek;
+  var nextDays = daysLeft < 2 ? daysLeft : 2;
+  mainButton = '<button class="btn" onclick="advanceDay()" style="width:100%;margin-bottom:10px;padding:15px;font-size:16px;background:#2c3e50;color:#fff;border:1px solid #34495e;">⏩ LANJUT (' + nextDays + ' Hari)</button>';
+}
 
   var cards = '<div class="card" style="text-align:center;background:linear-gradient(100deg,#1b3a2c,#12261d);border-color:#2ecc71;">'+
     '<h3 style="margin-bottom:5px;color:#a8e6c1;">Pekan '+(state.round+1)+' - Hari Ke-'+state.dayInWeek+'</h3>'+
