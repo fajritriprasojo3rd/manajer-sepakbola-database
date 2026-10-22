@@ -621,7 +621,6 @@ function renderToko(){
 function buyItem(price){ var my = state.teams[state.myIdx]; if(my.budget<price)return; my.budget-=price; toast("Dibeli!"); render(); saveGame(); }
 
 function renderStadion(){
-function renderStadion(){
   var my = state.teams[state.myIdx]; 
   
   // Pastikan data stadion ada
