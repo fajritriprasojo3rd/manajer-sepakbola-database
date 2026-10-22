@@ -1509,4 +1509,108 @@ function render(){
     eb.textContent='INIT ERROR: '+(e.message||e);
     document.body.appendChild(eb);
   }
+
+  /* ==================== PATCH FUNGSI PENTING ==================== */
+function getTransferWindowLabel(){
+  var idx=state.round;
+  if(idx<4) return {open:true,label:'Pre-Season (Agustus)',color:'#2ecc71'};
+  if(idx>=22 && idx<26) return {open:true,label:'Mid-Season (Januari)',color:'#2ecc71'};
+  if(idx<22) return {open:false,label:'Tutup (buka Januari)',color:'#e63946'};
+  return {open:false,label:'Tutup (buka Juli)',color:'#e63946'};
+}
+
+function getMatchDate(){
+  var m=Math.floor(state.round/4);
+  var monthNames=['Agu','Sep','Okt','Nov','Des','Jan','Feb','Mar','Apr','Mei'];
+  return ((state.round%4)*7+1)+' '+(monthNames[m]||'Mei')+' '+(2026+(state.season-1));
+}
+
+function newGame(myIdx,slot){
+  try {
+    PID=0;
+    state.activeSlot=slot||state.activeSlot||1;
+    state.teams=TEAM_DEFS.map(function(d){
+      return {
+        name:d.name,color:d.color,div:d.div,
+        players:makeSquad(d.base),academy:[],
+        formation:pick(Object.keys(FORMATIONS)),
+        tactics:{mentality:pick(['seimbang','menyerang','defensif'])},
+        xi:[],
+        budget:(d.div===1?ri(120,220):ri(40,90))*1e9,
+        stadium:{level:d.div===1?2:1,cap:d.div===1?18000:8000,ticketPrice:d.div===1?300000:100000,tourPrice:75000,storeAvg:150000,hotelRate:750000,hotelRooms:d.div===1?30:15,revenueHistory:[]},
+        listed:false,shares:null,acquiredBy:null,acquiredStake:0
+      };
+    });
+    state.teams.forEach(function(t){autoPickXI(t,t.formation);});
+    state.teams.forEach(function(t){
+      var baseR=avg(t.players.map(function(p){return p.rating;}));
+      for(var i=0;i<5;i++) t.academy.push(makeYouth(baseR));
+    });
+    state.myIdx=myIdx;
+    var my=state.teams[myIdx];
+    state.myDiv=my.div;
+    autoPickXI(my,my.formation);
+    state.fixtures={1:makeFixtures(getDivIndices(1)),2:makeFixtures(getDivIndices(2))};
+    state.round=0;state.season=1;
+    state.history=[];
+    state.allTime={scorers:{},assisters:{},mvp:{},cs:{},apps:{},cards:{}};
+    state.trophyRoom=[];
+    state.currentPialaNasWinner=null;state.currentLCWinner=null;
+    state.pialaNasional=null;state.ligaChampions=null;
+    state.news=[];state.training=[];state.morale=0;state.fanMood=50;
+    state.lastAttendance=null;state.sponsors=[];state.sponsorOffers=[];state.sponsorOffersWeek=-1;
+    state.ipoFlow=null;state.acquisitions=[];state.stockHistory=[];
+    state.stockPortfolio={};state.stockTransactions=[];
+    state.pcAnswered=false;state.activeCrisis=null;state.hadCrisis=false;
+    state.instantWinNext=false;state.pitchSel=null;state.freePos=false;
+    state.pendingTransfers=[];state.bidHistory=[];state.inventory={};
+    state.teamRecords={biggestWin:null,biggestLoss:null,longestWinStreak:0,currentStreak:0,currentStreakType:''};
+    state.ballonDOr=[];state.jobOffers=[];state.formerClubs=[];state.pendingSales=[];state.freeAgents=[];
+    state.view='main';state.mainTab='beranda';state.subTab='squad';state.tableDiv=my.div;
+    render();
+    saveGame(); // Simpan otomatis ke Supabase saat mulai
+  } catch(e) {
+    alert("Gagal memulai game: " + e.message);
+  }
+}
+
+function startNewSeason(){
+  state.season++;
+  state.pialaNasional=null;state.ligaChampions=null;
+  state.currentPialaNasWinner=null;state.currentLCWinner=null;
+  state.round=0;
+  state.teams.forEach(function(t){
+    t.players.forEach(function(p){
+      p.age++;
+      if(p.age<=25) p.rating+=ri(1,3);
+      else if(p.age>=31) p.rating-=ri(1,2);
+      p.rating=Math.max(40,Math.min(95,p.rating));
+      p.seasonGoals=0;p.apps=0;p.assists=0;p.yellow=0;p.red=0;p.cs=0;p.mvp=0;
+      p.stamina=100;p.injury=0;
+    });
+    if(t.players.length<16){
+       for(var i=t.players.length;i<16;i++) t.players.push(makeYouth(avg(t.players.map(function(p){return p.rating;}))));
+    }
+    autoPickXI(t,t.formation);
+  });
+  state.fixtures={1:makeFixtures(getDivIndices(1)),2:makeFixtures(getDivIndices(2))};
+  state.view='main';state.mainTab='beranda';state.subTab='squad';
+  render();
+  saveGame();
+}
+
+// Stub (fungsi kosong) agar game tidak error jika fitur ini belum lengkap
+function calcHomeMatchRevenue(){return {net:100000000, attendance:10000, riot:null};}
+function updateAllStocks(){}
+function crashAllStocks(){}
+function executePendingTransfers(){}
+function generateJobOffers(){}
+function startPialaNasional(){}
+function playPialaRound(){}
+function addRandomNews(){
+  if(Math.random()<0.3){
+     state.news.unshift({t:'Berita sepak bola hari ini seputar '+state.teams[state.myIdx].name,time:'Pekan '+(state.round+1)});
+     if(state.news.length>10) state.news=state.news.slice(0,10);
+  }
+}  
 })();
