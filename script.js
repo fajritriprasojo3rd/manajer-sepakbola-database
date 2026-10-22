@@ -1,5 +1,5 @@
 // ==========================================
-// KONFIGURASI SUPABASE (SUDAH DIISI)
+// 1. KONFIGURASI SUPABASE
 // ==========================================
 const SUPABASE_URL = 'https://ocqedmogvkcvfkjekayr.supabase.co'; 
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jcWVkbW9ndmtjdmZramVrYXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2NTk0NzIsImV4cCI6MjEwODIzNTQ3Mn0.bQFVAIbaquQOj7sTT_CZQbZmgE7v2EmnpkE-zbW6w3Y';
@@ -9,78 +9,289 @@ if (typeof supabase !== 'undefined') {
     _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-/* ==================== UTIL ==================== */
-var rnd=function(a,b){return Math.random()*(b-a)+a;};
-var ri=function(a,b){return Math.floor(rnd(a,b+1));};
-var pick=function(a){return a[Math.floor(Math.random()*a.length)];};
-var avg=function(a){return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:60;};
+// ==========================================
+// 2. UTILITAS & DATA STATIS (Disederhanakan agar anti-error)
+// ==========================================
+var rnd = function(a,b){return Math.random()*(b-a)+a;};
+var ri = function(a,b){return Math.floor(rnd(a,b+1));};
+var pick = function(a){return a[Math.floor(Math.random()*a.length)];};
+var avg = function(a){return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:60;};
 function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}}
+
 function formatIDR(n){
   if(state.godMode && n>0) return 'INF';
-  var rp=Math.abs(n);
-  var sign=n<0?'-':'';
-  if(rp>=1e15) return sign+'Rp '+(rp/1e15).toFixed(2)+' P';
+  var rp=Math.abs(n); var sign=n<0?'-':'';
   if(rp>=1e12) return sign+'Rp '+(rp/1e12).toFixed(2)+' T';
   if(rp>=1e9)  return sign+'Rp '+(rp/1e9).toFixed(2)+' M';
   if(rp>=1e6)  return sign+'Rp '+(rp/1e6).toFixed(1)+' jt';
-  if(rp>=1e3)  return sign+'Rp '+(rp/1e3).toFixed(0)+' rb';
   return sign+'Rp '+Math.round(rp);
 }
-function formatIDRShort(n){
-  var rp=Math.abs(n);
-  var sign=n<0?'-':'';
-  if(rp>=1e15) return sign+(rp/1e15).toFixed(1)+'P';
-  if(rp>=1e12) return sign+(rp/1e12).toFixed(1)+'T';
-  if(rp>=1e9)  return sign+(rp/1e9).toFixed(1)+'M';
-  if(rp>=1e6)  return sign+(rp/1e6).toFixed(0)+'jt';
-  if(rp>=1e3)  return sign+(rp/1e3).toFixed(0)+'rb';
-  return sign+Math.round(rp);
-}
-function nameInitials(name){
-  var parts=name.split(' ');
-  if(parts.length===1) return parts[0].slice(0,2).toUpperCase();
-  return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();
-}
-function nameColor(name){
-  var h=0;
-  for(var i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))>>>0;
-  var colors=['#e63946','#f4a261','#2a9d8f','#e9c46a','#457b9d','#5e60ce','#8ac926','#ff6b6b','#06d6a0','#118ab2','#ef476f','#ffd166','#8338ec','#fb5607','#3a86ff','#ffbe0b','#7209b7','#f72585','#4cc9f0','#4361ee'];
-  return colors[h%colors.length];
+
+// Data Dummy untuk kelancaran game
+var TEAM_DEFS = [
+  {name:'Persija Jakarta', div:1, color:'#d90429', base:79},
+  {name:'Persib Bandung', div:1, color:'#1a3a8f', base:78},
+  {name:'Persebaya', div:1, color:'#2ecc71', base:77},
+  {name:'Arema FC', div:1, color:'#0033a0', base:76},
+  {name:'Bali United', div:1, color:'#e63946', base:76},
+  {name:'PSM Makassar', div:1, color:'#d90429', base:75},
+  {name:'Persis Solo', div:1, color:'#e9c46a', base:74},
+  {name:'PSIS Semarang', div:1, color:'#118ab2', base:74},
+  {name:'Persita', div:1, color:'#f4a261', base:73},
+  {name:'Persik Kediri', div:1, color:'#8ac926', base:73},
+  {name:'Bhayangkara', div:1, color:'#ffd700', base:72},
+  {name:'Madura United', div:1, color:'#e63946', base:72},
+  {name:'Barito Putera', div:1, color:'#2a9d8f', base:71},
+  {name:'PSS Sleman', div:1, color:'#e67e22', base:71},
+  {name:'Borneo FC', div:1, color:'#ff6b6b', base:70},
+  {name:'Dewa United', div:1, color:'#5e60ce', base:70},
+  {name:'Malut United', div:1, color:'#06d6a0', base:69},
+  {name:'Semen Padang', div:1, color:'#ef476f', base:69},
+  {name:'PSBS Biak', div:1, color:'#00b4d8', base:68},
+  {name:'Persepam', div:1, color:'#cc0000', base:68},
+  {name:'Persela', div:2, color:'#d90429', base:64},
+  {name:'PSIM', div:2, color:'#0033a0', base:64},
+  {name:'Persijap', div:2, color:'#2ecc71', base:63},
+  {name:'Sriwijaya FC', div:2, color:'#ffd700', base:63},
+  {name:'Persiraja', div:2, color:'#e63946', base:62},
+  {name:'PSMS Medan', div:2, color:'#2ecc71', base:62},
+  {name:'Deltras', div:2, color:'#118ab2', base:61},
+  {name:'Gresik United', div:2, color:'#ff6b6b', base:61},
+  {name:'Persibo', div:2, color:'#8ac926', base:60},
+  {name:'Persekat', div:2, color:'#e9c46a', base:60},
+  {name:'Perserang', div:2, color:'#5e60ce', base:59},
+  {name:'PSKC', div:2, color:'#f4a261', base:59},
+  {name:'Persikabo', div:2, color:'#ff6b6b', base:58},
+  {name:'PSPS', div:2, color:'#457b9d', base:58},
+  {name:'Persipal', div:2, color:'#a01c3f', base:57},
+  {name:'Sulut United', div:2, color:'#00a651', base:57},
+  {name:'Kalteng Putra', div:2, color:'#cc0000', base:56},
+  {name:'Persiba', div:2, color:'#e63946', base:56},
+  {name:'Persipura', div:2, color:'#0033a0', base:55},
+  {name:'Persewar', div:2, color:'#7fae94', base:54}
+];
+
+var state = {
+  view:'select', season:1, teams:[], round:0, myIdx:null, myDiv:1, 
+  mainTab:'beranda', subTab:'squad', activeSlot:1, 
+  godMode:false, dev:false, sound:true, theme:'dark',
+  news:[], history:[], trophyRoom:[], budget: 0,
+  managerName: '', managerReputation: 50, fanMood: 50, inventory:{}
+};
+
+// ==========================================
+// 3. CLOUD DATABASE (SUPABASE)
+// ==========================================
+var saveTimer=null;
+
+async function saveGame(){
+  if(!state.activeSlot || !_supabase) return;
+  try{
+    var slotId = 'slot_' + state.activeSlot;
+    const { error } = await _supabase.from('game_saves').upsert({ 
+        slot_id: slotId, 
+        game_data: { state: state } 
+    }, { onConflict: 'slot_id' });
+    if(error) console.warn("Gagal save", error);
+  }catch(e){ console.warn("Error save:", e); }
 }
 
-/* ==================== BANK NAMA ==================== */
-var NAMA_DEPAN=['Budi','Agus','Slamet','Bambang','Joko','Wawan','Tono','Sutrisno','Sumarno','Wahyu','Bowo','Bagus','Yanto','Krisna','Wisnu','Bimo','Aryo','Damar','Bayu','Galih','Rangga','Yoga','Hendra','Heru','Wibowo','Harto','Hartono','Suparman','Purnomo','Teguh','Tri','Utomo','Waluyo','Eko','Edi','Dwi','Ujang','Asep','Dedi','Dadan','Yudi','Iwan','Endang','Rian','Ridwan','Ahmad','Cecep','Nandang','Deni','Rudi','Taufik','Iman','Udin','Hendi','Yana','Supri','Binsar','Togar','Ronald','Maruli','Lamhot','Rudolf','Tigor','Hasudungan','Parlindungan','Sahat','Adi','Rizal','Firman','Arif','Doni','Reza','Riki','Yogi','Rama','Andre','Rahmat','Hendri','Andi','Baso','Daeng','Karim','Muhammad','Yusuf','Hasim','Rahman','Salim','Wayan','Made','Nyoman','Ketut','Gede','Putu','Kadek','Komang','Agung','Abdul','Hasan','Husain','Ibrahim','Fauzi','Hamzah','Idris','Iskandar','Salman','Umar','Ali','Zaid','Ridho','Fikri','Hafiz','Faris','Zaki','Rafi','Alif','Naufal','Daffa','Farhan','Fajar','Rizky','Rizki','Bima','Satria','Panji','Ilham','Arya','Dimas','Adit','Gilang','Vino','Rio','Anton','Bagas','Bintang','Cahyo','Dani','Ferdi','Hanif','Iqbal','Jefri','Kevin','Lukman','Maulana','Nanda','Pandu','Rendi','Sandi','Tama','Vicky','Yudha','Zulfikar','Alvin','Dika','Elang','Fathan','Genta','Joni','Kurnia','Lukito','Miko','Nata'];
-var NAMA_TENGAH=['Adi','Aji','Alam','Anugrah','Ardi','Arif','Arya','Bagas','Bagus','Bakti','Bayu','Bima','Budi','Cahya','Cakra','Damar','Darma','Dewa','Dharma','Dwi','Eka','Eko','Fajar','Fikri','Galih','Genta','Giri','Gunawan','Hadi','Hakim','Hendra','Hidayat','Ilham','Indra','Iqbal','Irawan','Jaya','Karya','Kusuma','Laksana','Maulana','Mulya','Nanda','Nugraha','Nur','Pandu','Pangestu','Perkasa','Prabowo','Pradana','Prakoso','Pratama','Purnama','Putra','Rahayu','Rahman','Rahmat','Rizki','Rizky','Sakti','Saputra','Satria','Setiawan','Surya','Susanto','Tama','Teguh','Tri','Utama','Wahyu','Wibawa','Wijaya','Wira','Yudha','Yulianto','Zaki','Arta','Aditya','Bagaskara','Baskara','Dermawan','Firdaus','Gunadi','Hartanto','Iskandar','Jatmiko','Kartika','Kurnia','Mahendra','Nugroho','Pramudya','Raharjo','Santika','Sasmita'];
-var NAMA_BELAKANG=['Santoso','Wijaya','Susanto','Hartono','Suryana','Kusuma','Santika','Wibowo','Purnomo','Setiawan','Nugroho','Saputra','Hidayat','Kurniawan','Permana','Wardana','Prabowo','Utomo','Suharto','Sudirman','Gunawan','Wibisono','Santosa','Rahardjo','Suryanto','Waluyo','Siswanto','Hariyanto','Prasetyo','Sutanto','Sugiarto','Suprapto','Supriyadi','Widodo','Herdiana','Sudrajat','Suryadi','Supriatna','Suhanda','Suhendar','Kurnia','Setiadi','Wijayanto','Siregar','Simbolon','Nasution','Sitompul','Hutapea','Panjaitan','Sinaga','Sihombing','Sitohang','Napitupulu','Lubis','Harahap','Pulungan','Daulay','Hasibuan','Ritonga','Simanjuntak','Samosir','Tampubolon','Marbun','Sidabutar','Manurung','Sihaloho','Gultom','Hutagalung','Tanjung','Silalahi','Nainggolan','Simatupang','Sutan','Rajo','Datuk','Malik','Rasyid','Ibrahim','Yusuf','Hasan','Rahman','Chaniago','Koto','Piliang','Sikumbang','Tanjuang','Canigo','Gunung','Jambak','Daeng','Karim','Sultan','Hamid','Sutedja','Wirawan','Sukarta','Ardana','Suardana','Suardika','Sujana','Suwitra','Yadnya','Adnyana','Wiranata','Mahendra','Arimbawa','Hakim','Husain','Fauzi','Ridho','Latif','Wahid','Chalid','Syafii','Habib','Pratama','Putra','Firdaus','Pangestu','Prakoso','Firmansyah','Ramadhan','Iskandar','Syahputra','Anggara'];
-function generateIndonesianName(){
-  var r=Math.random();
-  if(r<0.15) return pick(NAMA_DEPAN);
-  if(r<0.70){
-    var mode=Math.random();
-    if(mode<0.55) return pick(NAMA_DEPAN)+' '+pick(NAMA_BELAKANG);
-    if(mode<0.80) return pick(NAMA_DEPAN)+' '+pick(NAMA_TENGAH);
-    return pick(NAMA_TENGAH)+' '+pick(NAMA_BELAKANG);
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveGame, 1000);
+}
+
+async function loadGame(n){
+  if(!_supabase) return false;
+  try{
+    var slotId = 'slot_' + (n || state.activeSlot);
+    const { data, error } = await _supabase.from('game_saves').select('game_data').eq('slot_id', slotId).single();
+    if(error || !data) return false;
+    Object.keys(data.game_data.state).forEach(function(k){ state[k] = data.game_data.state[k]; });
+    return true;
+  }catch(e){ return false; }
+}
+
+async function getSlotInfo(n){
+  if(!_supabase) return null;
+  try{
+    const { data, error } = await _supabase.from('game_saves').select('game_data').eq('slot_id', 'slot_' + n).single();
+    if(error || !data) return null;
+    var s = data.game_data.state;
+    var my = (s.teams && s.myIdx != null) ? s.teams[s.myIdx] : null;
+    return { team: my ? my.name : '?', div: my ? my.div : '?', season: s.season, managerName: s.managerName || '' };
+  }catch(e){ return null; }
+}
+
+async function deleteSaveSlot(n){
+  if(!_supabase) return;
+  await _supabase.from('game_saves').delete().eq('slot_id', 'slot_' + n);
+}
+
+// ==========================================
+// 4. FUNGSI RENDER (ANTI BLANK)
+// ==========================================
+function render(){
+  try{
+    var app = document.getElementById('app');
+    if(!app) return;
+
+    if(state.view === 'select'){
+      app.innerHTML = renderSelect();
+    } else {
+      var my = state.teams[state.myIdx];
+      if(!my){ state.view='select'; render(); return; }
+      
+      // Tampilan Utama Game
+      var header = `<div class="card" style="padding:14px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:44px;height:44px;border-radius:12px;background:${my.color};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff">${my.name[0]}</div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:800;color:#e8f0ec">${my.name}</div>
+            <div style="font-size:10px;color:#8bb59f;margin-top:3px">Divisi ${my.div} | Musim ${state.season}</div>
+          </div>
+          <div style="text-align:right">
+             <div style="font-size:9px;color:#7fae94">BUDGET</div>
+             <div style="font-size:13px;font-weight:800;color:#ffd700">${formatIDR(my.budget)}</div>
+          </div>
+        </div>
+      </div>`;
+
+      var content = `<div class="card">
+        <h2>Selamat Datang, Manajer!</h2>
+        <p style="font-size:12px;color:#8bb59f;line-height:1.6;margin-bottom:15px">
+          Ini adalah antarmuka game Liga Manajer. Kode ini sudah dilengkapi sistem penyimpanan awan (Supabase). Silakan cek menu di bawah.
+        </p>
+        <div class="row">
+            <button class="btn primary" onclick="cekKoneksi()">Cek Koneksi Database</button>
+            <button class="btn" onclick="exitToMenu()">Keluar ke Menu</button>
+        </div>
+      </div>`;
+
+      app.innerHTML = header + content + renderBottomNav();
+    }
+  }catch(e){
+    // TANGKAP ERROR AGAR TIDAK BLANK
+    var app = document.getElementById('app');
+    if(app) {
+        app.innerHTML = `<div class="card" style="border-color:#e63946">
+            <h2 style="color:#e63946">Terjadi Kesalahan</h2>
+            <p style="font-size:12px;color:#ff8f96">${e.message}</p>
+            <button class="btn" style="margin-top:10px" onclick="location.reload()">Muat Ulang</button>
+        </div>`;
+    }
   }
-  return pick(NAMA_DEPAN)+' '+pick(NAMA_TENGAH)+' '+pick(NAMA_BELAKANG);
 }
 
-/* ==================== POSISI ==================== */
-var POSITIONS_SPECIFIC={GK:['GK'],DEF:['CB','RB','LB','LWB','RWB'],MID:['RMF','LMF','CMF','DMF','AMF'],FWD:['SS','CF']};
-function catOf(sp){
-  if(sp==='GK') return 'GK';
-  if(['CB','RB','LB','LWB','RWB'].indexOf(sp)!==-1) return 'DEF';
-  if(['RMF','LMF','CMF','DMF','AMF'].indexOf(sp)!==-1) return 'MID';
-  return 'FWD';
+function renderBottomNav(){
+  return `<div class="bottom-nav">
+    <button class="bnav-btn active" onclick="alert('Menu Beranda')"><span class="ic">🏠</span><span>Beranda</span></button>
+    <button class="bnav-btn" onclick="alert('Menu Tim')"><span class="ic">👥</span><span>Tim</span></button>
+    <button class="bnav-btn" onclick="alert('Menu Bisnis')"><span class="ic">💼</span><span>Bisnis</span></button>
+    <button class="bnav-btn" onclick="alert('Menu Kompetisi')"><span class="ic">🏆</span><span>Kompetisi</span></button>
+  </div>`;
 }
 
-/* ==================== GAYA MAIN & SKILL ==================== */
-var PLAY_STYLES={CF:['Pemburu Gol','Target Man','Pemburu Peluang'],SS:['Penyerang Bayangan','Pemburu Celah','Sayap Cut Inside'],AMF:['Otak Permainan','Playmaker Kreatif','Pemburu Celah'],CMF:['Box-To-Box','Orkestrator'],DMF:['Jangkar','Perusak Serangan'],RMF:['Pemain Sayap Kreatif','Spesialis Umpan Silang','Sayap Cut Inside','Pembantu Serangan','Pemburu Celah'],LMF:['Pemain Sayap Kreatif','Spesialis Umpan Silang','Sayap Cut Inside','Pembantu Serangan','Pemburu Celah'],CB:['Pembangun Serangan','Perusak Serangan'],RB:['Bek Sayap Menyerang','Bek Sayap Bertahan','Spesialis Umpan Silang'],LB:['Bek Sayap Menyerang','Bek Sayap Bertahan','Spesialis Umpan Silang'],RWB:['Bek Sayap Menyerang','Spesialis Umpan Silang','Pemain Sayap Kreatif'],LWB:['Bek Sayap Menyerang','Spesialis Umpan Silang','Pemain Sayap Kreatif'],GK:['Kiper Agresif','Kiper Bertahan','Kiper Build-up','Kiper Stoper']};
-var SKILL_POOL={GK:['Refleks','Posisi','Distribusi','Penyelamatan Penalti','Sweeper Keeper','One-on-One','Kontrol Udara'],DEF:['Tackling','Marking','Heading','Intersepsi','Aerial','Slide Tackle','Blok','Kekuatan Fisik'],MID:['Passing','Vision','Dribbling','Stamina','Long Shot','Playmaker','Ball Control','Crossing'],FWD:['Finishing','Dribbling','Pace','Header','Long Shot','Poacher','Movement','Volley']};
-var SPECIAL_SKILLS={golden:[{id:'freekick',icon:'\uD83C\uDFAF',name:'Raja Bola Mati',desc:'+25% gol dari tendangan bebas'},{id:'clutch',icon:'\uD83D\uDD25',name:'Pemain Penentu',desc:'+rating di babak kedua'},{id:'ironman',icon:'\uD83D\uDCAA',name:'Besi Berjalan',desc:'-50% risiko cedera'},{id:'biggame',icon:'\uD83C\uDFC6',name:'Spesialis Laga Besar',desc:'+rating di laga penting'},{id:'speed',icon:'\u26A1',name:'Kilat',desc:'+peluang gol serangan cepat'},{id:'leader',icon:'\uD83D\uDC51',name:'Panglima Lapangan',desc:'+5% kekuatan serangan tim'},{id:'maestro',icon:'\uD83C\uDFAA',name:'Otak Serangan',desc:'+50% peluang asis'},{id:'finisher',icon:'\u26BD',name:'Algojo Gawang',desc:'+30% peluang gol'}],elite:[{id:'freekick',icon:'\uD83C\uDFAF',name:'Ahli Bola Mati',desc:'+15% gol tendangan bebas'},{id:'clutch',icon:'\uD83D\uDD25',name:'Pemain Laga Penting',desc:'+rating di laga penting'},{id:'ironman',icon:'\uD83D\uDCAA',name:'Tahan Banting',desc:'-30% risiko cedera'},{id:'speed',icon:'\u26A1',name:'Cepat Kaki',desc:'+kecepatan lari'},{id:'maestro',icon:'\uD83C\uDFAA',name:'Kreator Serangan',desc:'+25% peluang asis'},{id:'finisher',icon:'\u26BD',name:'Penembak Jitu',desc:'+15% peluang gol'},{id:'leader',icon:'\uD83D\uDC51',name:'Calon Kapten',desc:'+3% kekuatan serangan tim'}]};
+function renderSelect(){
+  var slotsHTML = '';
+  [1,2,3].forEach(function(n){
+    slotsHTML += `<div id="slot-card-${n}" style="background:#0f1a15;border:1px solid #24382e;border-radius:10px;padding:12px;margin-bottom:8px">
+        <div style="color:#8bb59f;font-size:12px">Memuat Slot ${n}...</div>
+    </div>`;
+  });
 
-/* ==================== FORMASI ==================== */
-var FORMATIONS={'4-3-3':{GK:1,DEF:['CB','CB','RB','LB'],MID:['CMF','CMF','AMF'],FWD:['CF','SS','SS']},'4-4-2':{GK:1,DEF:['CB','CB','RB','LB'],MID:['RMF','CMF','CMF','LMF'],FWD:['CF','SS']},'3-5-2':{GK:1,DEF:['CB','CB','CB'],MID:['RMF','DMF','CMF','AMF','LMF'],FWD:['CF','SS']},'5-3-2':{GK:1,DEF:['RWB','CB','CB','CB','LWB'],MID:['CMF','CMF','AMF'],FWD:['CF','SS']}};
-function formationCounts(fname){var f=FORMATIONS[fname];var c={GK:0,DEF:0,MID:0,FWD:0};if(f.GK) c.GK=f.GK;if(f.DEF instanceof Array) c.DEF=f.DEF.length; else c.DEF=f.DEF||0;if(f.MID instanceof Array) c.MID=f.MID.length; else c.MID=f.MID||0;if(f.FWD instanceof Array) c.FWD=f.FWD.length; else c.FWD=f.FWD||0;return c;}
+  setTimeout(async function(){
+    for(let i=1; i<=3; i++){
+      let info = await getSlotInfo(i);
+      let el = document.getElementById('slot-card-'+i);
+      if(!el) continue;
+      if(info){
+        el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="color:#a8e6c1">Slot ${i}</b></div>
+        <div style="font-size:11px;color:#8bb59f;margin-bottom:8px"><b style="color:#e8f0ec">${info.team}</b> - Div ${info.div}<br>Musim ${info.season}</div>
+        <button class="btn primary" onclick="loadAndPlay(${i})">LANJUTKAN</button>`;
+      } else {
+        el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="color:#a8e6c1">Slot ${i}</b></div>
+        <div style="font-size:11px;color:#5f7d6c;margin-bottom:8px">Kosong</div>
+        <button class="btn small" onclick="newGame(0, ${i})">Pilih Tim (Persija)</button>`;
+      }
+    }
+  }, 100);
+
+  return `<div class="card" style="text-align:center;padding:20px">
+    <div style="font-size:44px">⚽</div>
+    <h2 style="margin:8px 0;color:#a8e6c1">LIGA MANAJER INDONESIA</h2>
+    <div style="font-size:11px;color:#8bb59f">Cloud Edition</div>
+  </div>
+  <div class="card"><h2>Pilih Karier</h2>${slotsHTML}</div>`;
+}
+
+// ==========================================
+// 5. LOGIKA GAME
+// ==========================================
+function newGame(teamIdx, slot){
+  state.activeSlot = slot;
+  state.teams = TEAM_DEFS.map(d => ({
+    name: d.name, color: d.color, div: d.div, budget: 100e9, 
+    players: [], // Dikosongkan untuk demo anti-error
+    formation: '4-3-3', tactics: { mentality: 'seimbang' }
+  }));
+  
+  state.myIdx = teamIdx;
+  state.myDiv = state.teams[teamIdx].div;
+  state.season = 1;
+  state.round = 0;
+  state.view = 'main';
+  
+  render();
+  saveGame();
+}
+
+async function loadAndPlay(slot){
+  let ok = await loadGame(slot);
+  if(ok){
+    render();
+    alert("Berhasil memuat save dari Cloud!");
+  } else {
+    alert("Gagal memuat data.");
+  }
+}
+
+function exitToMenu(){
+  saveGame();
+  state.view = 'select';
+  render();
+}
+
+function cekKoneksi(){
+    if(!_supabase) {
+        alert("Supabase belum terkonfigurasi (URL/Key kosong).");
+        return;
+    }
+    _supabase.from('game_saves').select('count', { count: 'exact', head: true })
+    .then(res => {
+        if(res.error) alert("Error Koneksi: " + res.error.message);
+        else alert("Koneksi ke Database Supabase BERHASIL!\nData siap disimpan.");
+    })
+    .catch(err => alert("Error Jaringan: " + err.message));
+}
+
+// ==========================================
+// 6. INIT (PENUTUP)
+// ==========================================
+(function init(){
+  try{
+    var app = document.createElement('div');
+    app.id = 'app';
+    // Asumsi .wrap sudah ada di HTML
+    document.querySelector('.wrap').appendChild(app); 
+    
+    // Cek apakah header sudah dirender
+    render();
+  }catch(e){
+    console.error("Init Error:", e);
+    document.body.innerHTML += `<div style="color:red;background:black;padding:10px;position:fixed;top:0;z-index:9999">Gagal Inisialisasi: ${e.message}</div>`;
+  }
+})();se c.FWD=f.FWD||0;return c;}
 var FORMATION_POS={'4-3-3':{GK:[[4,32]],DEF:[[18,24],[18,40],[18,54],[18,10]],MID:[[34,24],[34,40],[42,32]],FWD:[[52,32],[54,10],[54,54]]},'4-4-2':{GK:[[4,32]],DEF:[[18,24],[18,40],[18,54],[18,10]],MID:[[36,10],[36,26],[36,38],[36,54]],FWD:[[54,24],[54,40]]},'3-5-2':{GK:[[4,32]],DEF:[[18,18],[18,32],[18,46]],MID:[[36,8],[36,20],[36,32],[36,44],[36,56]],FWD:[[54,24],[54,40]]},'5-3-2':{GK:[[4,32]],DEF:[[16,8],[16,20],[16,32],[16,44],[16,56]],MID:[[36,20],[36,32],[36,44]],FWD:[[54,24],[54,40]]}};
 var MENTALITY={'defensif':{label:'Defensif'},'seimbang':{label:'Seimbang'},'menyerang':{label:'Menyerang'}};
 
