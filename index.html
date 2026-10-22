@@ -5,33 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Liga Manajer Cloud</title>
 <link rel="stylesheet" href="style.css">
-<script>
-    // PENDETEKSI ERROR: Jika ada error JavaScript, kotak merah akan muncul
-    window.onerror = function(msg, url, line, col, error) {
-        var errDiv = document.getElementById('error-log');
-        if(!errDiv) {
-            errDiv = document.createElement('div');
-            errDiv.id = 'error-log';
-            errDiv.style.cssText = 'position:fixed;top:60px;left:10px;right:10px;background:#ffcccc;color:#900;padding:15px;z-index:99999;font-size:14px;border:2px solid red;border-radius:8px;';
-            document.body.appendChild(errDiv);
-        }
-        errDiv.innerHTML = '<strong>Error:</strong> ' + msg + '<br><small>Baris: ' + line + '</small>';
-        return false;
-    };
-</script>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1 id="appTitle">&#9917; LIGA INDONESIA</h1>
+    <h1>&#9917; LIGA MANAJER</h1>
     <div class="hdr-icons">
-      <button class="hdr-icon" onclick="alert('Fitur suara')">&#128266;</button>
-      <button class="hdr-icon" onclick="alert('Fitur tema')">&#127769;</button>
+      <button class="hdr-icon" onclick="exitToMenu()">&#128682;</button>
     </div>
   </header>
   <div id="app"></div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 </body>
