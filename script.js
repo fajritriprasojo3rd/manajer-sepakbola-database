@@ -840,11 +840,12 @@ function renderTransfer(){
   if(state.transferFilter !== 'SEMUA') { targets = targets.filter(x => x.p.pos === state.transferFilter); }
   targets.sort((a,b) => b.p.rating - a.p.rating);
   
-  html += '<div style="font-size:11px;color:#8bb59f;margin-bottom:10px;">Total Tersedia: <b>'+targets.length+'</b> pemain (Klik untuk menawar)</div>';
+  html += '<div style="font-size:11px;color:#8bb59f;margin-bottom:10px;">Total Tersedia: <b>'+targets.length+'</b> pemain (Klik baris untuk menawar)</div>';
   html += '<div class="scroll-box" style="max-height: 55vh; overflow-x: auto; padding-right:5px;"><table style="width:100%; min-width: 350px; table-layout: fixed;"><tr><th style="width: 40%;">Nama</th><th style="width: 25%;">Klub</th><th class="num" style="width: 10%;">OVR</th><th class="num" style="width: 25%;">Harga</th></tr>';
   
   targets.slice(0, 100).forEach(function(x){
-      var price = marketValue(x.p) * (x.i === -1 ? 1.2 : 1.0); 
+      // Dibungkus Math.round agar angka harga bersih dan aman untuk event onclick
+      var price = Math.round(marketValue(x.p) * (x.i === -1 ? 1.2 : 1.0)); 
       var clubName = x.t; var clubColor = '#3498db';
       if(clubName.includes('Youth')) clubColor = '#ffd700';
 
