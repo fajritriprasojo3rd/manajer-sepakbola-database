@@ -621,18 +621,55 @@ function renderToko(){
 function buyItem(price){ var my = state.teams[state.myIdx]; if(my.budget<price)return; my.budget-=price; toast("Dibeli!"); render(); saveGame(); }
 
 function renderStadion(){
-  var my = state.teams[state.myIdx]; var lvl = my.stadium ? my.stadium.level : 1; var cap = my.stadium ? my.stadium.cap : 10000;
-  var html = '<div class="card"><h2>Stadion</h2><div style="background:#0f1a15;padding:20px;border-radius:12px;text-align:center;margin-bottom:15px;"><div style="font-size:40px;">🏟️</div><div style="font-size:16px;font-weight:bold;color:#a8e6c1">Level '+lvl+'</div><div style="font-size:12px;color:#8bb59f">Kapasitas: '+cap+'</div></div>';
-  if(lvl < 5){ html += '<button class="btn primary" style="width:100%" onclick="upgradeStadium('+(lvl*100e9)+')">Upgrade - 100M</button>'; }
+function renderStadion(){
+  var my = state.teams[state.myIdx]; 
+  
+  // Pastikan data stadion ada
+  if(!my.stadium) my.stadium = {level:1, cap:10000};
+  
+  var lvl = my.stadium.level; 
+  var cap = my.stadium.cap;
+  
+  // Batas maksimal 150.000 kursi (Level 6)
+  var maxCap = 150000;
+  var maxLvl = 6;
+  
+  var html = '<div class="card"><h2>Stadion</h2>'+
+    '<div style="background:#0f1a15;padding:20px;border-radius:12px;text-align:center;margin-bottom:15px;border:1px solid #24382e;">'+
+      '<div style="font-size:40px;">🏟️</div>'+
+      '<div style="font-size:16px;font-weight:bold;color:#a8e6c1">Level '+lvl+' / '+maxLvl+'</div>'+
+      '<div style="font-size:12px;color:#8bb59f;margin-top:5px;">Kapasitas: '+cap.toLocaleString('id-ID')+' / '+maxCap.toLocaleString('id-ID')+'</div>'+
+    '</div>';
+    
+  // Jika belum maksimal
+  if(lvl < maxLvl && cap < maxCap){ 
+    // Harga upgrade naik setiap level (misal: Level 1 = 100M, Level 2 = 200M, dst)
+    var cost = lvl * 100e9; 
+    var afford = my.budget >= cost;
+    var nextCap = cap + 20000; // Setiap upgrade nambah 20.000 kursi
+    
+    html += '<button class="btn primary" style="width:100%; padding:15px; font-size:14px;" '+(afford?'':'disabled')+' onclick="upgradeStadium('+cost+', '+nextCap+')">'+
+      'Upgrade Stadion (+20.000 Kursi) - '+formatIDRShort(cost)+
+    '</button>';
+  } else {
+    html += '<div style="text-align:center; color:#ffd700; font-weight:bold; padding:10px;">🏆 Stadion Sudah Maksimal!</div>';
+  }
+  
   return html + '</div>';
 }
-function upgradeStadium(cost){ var my = state.teams[state.myIdx]; if(my.budget<cost)return; my.budget-=cost; my.stadium.level++; my.stadium.cap+=10000; toast("Stadion Upgrade!"); render(); saveGame(); }
 
-function renderIPO() {
-  return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:40px">📈</div><h2 style="margin:10px 0">Bursa Saham (IPO)</h2><p style="font-size:12px;color:#8bb59f;margin-bottom:15px">Buka akses publik untuk mendapatkan dana segar.</p><button class="btn" disabled style="width:100%">Segera Hadir</button></div>';
-}
-function renderAkuisisi() {
-  return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:40px">🤝</div><h2 style="margin:10px 0">Akuisisi Klub</h2><p style="font-size:12px;color:#8bb59f;margin-bottom:15px">Beli saham mayoritas klub lain.</p><button class="btn" disabled style="width:100%">Segera Hadir</button></div>';
+function upgradeStadium(cost, nextCap){ 
+  var my = state.teams[state.myIdx]; 
+  if(my.budget < cost) return toast("Uang tidak cukup!");
+  
+  // Kurangi uang dan tambah kapasitas
+  my.budget -= cost; 
+  my.stadium.level++; 
+  my.stadium.cap = nextCap; 
+  
+  toast("Stadion berhasil di-upgrade! Kapasitas: " + my.stadium.cap.toLocaleString('id-ID')); 
+  render(); 
+  saveGame(); 
 }
 
 /* ==================== AKADEMI, LATIHAN, TAKTIK ==================== */
