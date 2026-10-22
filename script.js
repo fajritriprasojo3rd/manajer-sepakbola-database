@@ -621,6 +621,7 @@ function renderToko(){
 function buyItem(price){ var my = state.teams[state.myIdx]; if(my.budget<price)return; my.budget-=price; toast("Dibeli!"); render(); saveGame(); }
 
 function renderStadion(){
+function renderStadion(){
   var my = state.teams[state.myIdx]; 
   
   // Pastikan data stadion ada
@@ -642,7 +643,6 @@ function renderStadion(){
     
   // Jika belum maksimal
   if(lvl < maxLvl && cap < maxCap){ 
-    // Harga upgrade naik setiap level (misal: Level 1 = 100M, Level 2 = 200M, dst)
     var cost = lvl * 100e9; 
     var afford = my.budget >= cost;
     var nextCap = cap + 20000; // Setiap upgrade nambah 20.000 kursi
@@ -661,7 +661,6 @@ function upgradeStadium(cost, nextCap){
   var my = state.teams[state.myIdx]; 
   if(my.budget < cost) return toast("Uang tidak cukup!");
   
-  // Kurangi uang dan tambah kapasitas
   my.budget -= cost; 
   my.stadium.level++; 
   my.stadium.cap = nextCap; 
