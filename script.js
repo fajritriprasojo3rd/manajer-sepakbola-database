@@ -1198,28 +1198,287 @@ function getMatchDate(){var m=Math.floor(state.round/4);var monthNames=['Agu','S
 function getTransferWindowLabel(){var idx=state.round;if(idx<4) return {open:true,label:'Pre-Season',color:'#2ecc71'};if(idx>=22 && idx<26) return {open:true,label:'Mid-Season',color:'#2ecc71'};if(idx<22) return {open:false,label:'Tutup',color:'#e63946'};return {open:false,label:'Tutup',color:'#e63946'};}
 function toast(msg){var existing=document.querySelectorAll('.toast');for(var i=0;i<existing.length;i++) existing[i].remove();var d=document.createElement('div');d.className='toast';d.textContent=msg;document.body.appendChild(d);setTimeout(function(){d.remove();},1800);}
 
-/* ==================== STUB UNTUK FITUR LAINNYA (Agar tidak error) ==================== */
-function renderAkademi(){return '<div class="card"><h3>Akademi</h3><p style="font-size:11px;color:#8bb59f">Fitur Akademi siap digunakan.</p></div>';}
-function renderLatihan(){return '<div class="card"><h3>Latihan</h3><p style="font-size:11px;color:#8bb59f">Fitur Latihan siap digunakan.</p></div>';}
-function renderTaktik(){return '<div class="card"><h3>Taktik</h3><p style="font-size:11px;color:#8bb59f">Fitur Taktik siap digunakan.</p></div>';}
-function renderTransfer(){return '<div class="card"><h3>Pasar Transfer</h3><p style="font-size:11px;color:#8bb59f">Fitur Transfer siap digunakan.</p></div>';}
-function renderFreeAgent(){return '<div class="card"><h3>Free Agent</h3><p style="font-size:11px;color:#8bb59f">Fitur Free Agent siap digunakan.</p></div>';}
-function renderSponsor(){return '<div class="card"><h3>Sponsor</h3><p style="font-size:11px;color:#8bb59f">Fitur Sponsor siap digunakan.</p></div>';}
-function renderToko(){return '<div class="card"><h3>Toko</h3><p style="font-size:11px;color:#8bb59f">Fitur Toko siap digunakan.</p></div>';}
-function renderIPO(){return '<div class="card"><h3>IPO & Saham</h3><p style="font-size:11px;color:#8bb59f">Fitur IPO siap digunakan.</p></div>';}
-function renderAkuisisi(){return '<div class="card"><h3>Akuisisi Klub</h3><p style="font-size:11px;color:#8bb59f">Fitur Akuisisi siap digunakan.</p></div>';}
-function renderStadion(){return '<div class="card"><h3>Stadion</h3><p style="font-size:11px;color:#8bb59f">Fitur Stadion siap digunakan.</p></div>';}
-function renderPiala(){return '<div class="card"><h3>Piala</h3><p style="font-size:11px;color:#8bb59f">Fitur Piala siap digunakan.</p></div>';}
-function renderStats(){return '<div class="card"><h3>Statistik</h3><p style="font-size:11px;color:#8bb59f">Fitur Statistik siap digunakan.</p></div>';}
-function renderLegenda(){return '<div class="card"><h3>Legenda</h3><p style="font-size:11px;color:#8bb59f">Fitur Legenda siap digunakan.</p></div>';}
-function renderRiwayat(){return '<div class="card"><h3>Riwayat</h3><p style="font-size:11px;color:#8bb59f">Fitur Riwayat siap digunakan.</p></div>';}
-function renderBerita(){return '<div class="card"><h3>Berita</h3>'+(state.news.length?state.news.map(function(n){return '<div class="news-item"><div class="head">'+n.t+'</div></div>';}).join(''):'<p style="font-size:11px;color:#8bb59f">Belum ada berita.</p>')+'</div>';}
-function renderPossessionBar(){return '';}
+/* ==================== RENDER FITUR UI (REAL) ==================== */
+
+// 1. AKADEMI
+function renderAkademi() {
+  var my = state.teams[state.myIdx];
+  if(!my.academy) my.academy = [];
+  var html = '<div class="card"><h2>Akademi Muda</h2>';
+  if(my.academy.length === 0) {
+    html += '<div class="empty">Belum ada pemain di akademi.</div>';
+  } else {
+    html += '<table><tr><th>Nama</th><th>Pos</th><th class="num">OVR</th><th class="num">Umur</th><th></th></tr>';
+    my.academy.forEach(function(p) {
+      html += '<tr><td><b>'+p.name+'</b></td><td>'+p.specificPos+'</td><td class="num" style="color:#a8e6c1">'+p.rating+'</td><td class="num">'+p.age+'</td>'+
+      '<td><button class="btn small primary" onclick="promoteYouth('+p.id+')">Promosi</button></td></tr>';
+    });
+    html += '</table>';
+  }
+  html += '</div>';
+  return html;
+}
+function promoteYouth(id) {
+  var my = state.teams[state.myIdx];
+  var idx = my.academy.findIndex(p => p.id === id);
+  if(idx !== -1) {
+    my.players.push(my.academy[idx]);
+    my.academy.splice(idx, 1);
+    toast("Pemain dipromosikan ke tim utama!");
+    render();
+  }
+}
+
+// 2. LATIHAN
+function renderLatihan() {
+  var my = state.teams[state.myIdx];
+  var html = '<div class="card"><h2>Pusat Latihan</h2><p style="font-size:11px;color:#8bb59f;margin-bottom:12px;">Pilih pemain untuk ditingkatkan atributnya.</p>';
+  html += '<table><tr><th>Nama</th><th>Pos</th><th class="num">OVR</th><th></th></tr>';
+  my.players.slice(0, 15).forEach(function(p) {
+    html += '<tr><td>'+p.name+'</td><td>'+p.specificPos+'</td><td class="num" style="color:#a8e6c1">'+p.rating+'</td>'+
+      '<td><button class="btn small primary" onclick="trainPlayer('+p.id+')">Latih</button></td></tr>';
+  });
+  html += '</table></div>';
+  return html;
+}
+function trainPlayer(id) {
+  var my = state.teams[state.myIdx];
+  var p = getP(my, id);
+  if(p) {
+    p.rating = Math.min(95, p.rating + 1);
+    toast(p.name + " naik rating menjadi " + p.rating + "!");
+    render();
+  }
+}
+
+// 3. TAKTIK
+function renderTaktik() {
+  var my = state.teams[state.myIdx];
+  var html = '<div class="card"><h2>Taktik & Formasi</h2>'+
+    '<div style="background:#0f1a15;padding:15px;border-radius:10px;text-align:center;margin-bottom:15px;">'+
+    '<div style="font-size:24px;font-weight:bold;color:#a8e6c1;margin-bottom:5px;">'+my.formation+'</div>'+
+    '<div style="font-size:11px;color:#8bb59f;">Formasi Saat Ini</div></div>';
+  
+  html += '<h3>Ubah Formasi</h3><div class="row">';
+  Object.keys(FORMATIONS).forEach(function(f) {
+    html += '<button class="btn '+(my.formation===f?'primary':'')+'" onclick="state.teams[state.myIdx].formation=\''+f+'\';autoPickXI(state.teams[state.myIdx],\''+f+'\');render()">'+f+'</button>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+// 4. TRANSFER
+function renderTransfer(){
+  var my = state.teams[state.myIdx];
+  var html = '<div class="card"><h2>Pasar Transfer</h2>'+
+    '<div style="font-size:11px;color:#8bb59f;margin-bottom:12px">Budget: <b style="color:#ffd700">'+formatIDR(my.budget)+'</b></div>';
+  var targets = [];
+  state.teams.forEach(function(t, i){
+    if(i === state.myIdx) return;
+    t.players.forEach(function(p){ if(t.xi.indexOf(p.id) === -1) targets.push({p:p, t:t, i:i}); });
+  });
+  targets.sort((a,b) => b.p.rating - a.p.rating);
+  
+  html += '<div class="scroll-box"><table><tr><th>Nama</th><th>Klub</th><th class="num">OVR</th><th class="num">Harga</th><th></th></tr>';
+  targets.slice(0, 30).forEach(function(x){
+    var price = marketValue(x.p);
+    var afford = my.budget >= price;
+    html += '<tr><td><b>'+x.p.name+'</b><br><span style="font-size:9px;color:#8bb59f">'+x.p.specificPos+' - '+x.p.age+'thn</span></td>'+
+      '<td style="font-size:9px">'+x.t.name+'</td>'+
+      '<td class="num" style="color:#a8e6c1;font-weight:bold">'+x.p.rating+'</td>'+
+      '<td class="num" style="color:#e9c46a">'+formatIDRShort(price)+'</td>'+
+      '<td><button class="btn small '+(afford?'primary':'')+'" '+(afford?'':'disabled')+' onclick="buyPlayer('+x.p.id+','+price+','+x.i+')">Beli</button></td></tr>';
+  });
+  return html + '</table></div></div>';
+}
+function buyPlayer(id, price, sellerIdx){
+  var my = state.teams[state.myIdx]; var seller = state.teams[sellerIdx]; var p = getP(seller, id);
+  if(my.budget < price) return toast("Uang tidak cukup!");
+  my.budget -= price; seller.budget += price;
+  seller.players = seller.players.filter(x => x.id !== id); seller.xi = seller.xi.filter(x => x !== id);
+  autoPickXI(seller); my.players.push(p);
+  toast("Berhasil membeli " + p.name + "!"); render(); saveGame();
+}
+
+// 5. FREE AGENT
+function renderFreeAgent(){
+  var my = state.teams[state.myIdx];
+  if(!state.freeAgents || !state.freeAgents.length){
+    state.freeAgents = [];
+    for(var i=0; i<10; i++) {
+        state.freeAgents.push({id: 90000+i, name: generateIndonesianName(), specificPos: pick(['DEF','MID','FWD']), pos: pick(['DEF','MID','FWD']), rating: ri(60, 75), age: ri(20, 32), seasonGoals:0, apps:0, assists:0, mvp:0, contractYears: 2, weeklyWage: 10000000});
+    }
+  }
+  var html = '<div class="card"><h2>Free Agent</h2>';
+  html += '<div class="scroll-box"><table><tr><th>Nama</th><th>Pos</th><th class="num">OVR</th><th class="num">Umur</th><th></th></tr>';
+  state.freeAgents.forEach(function(p, i){
+    html += '<tr><td><b>'+p.name+'</b></td><td>'+p.specificPos+'</td><td class="num" style="color:#a8e6c1;font-weight:bold">'+p.rating+'</td><td class="num">'+p.age+'</td>'+
+      '<td><button class="btn small primary" onclick="signFreeAgent('+p.id+')">Rekrut</button></td></tr>';
+  });
+  return html + '</table></div></div>';
+}
+function signFreeAgent(id){
+  var my = state.teams[state.myIdx]; var idx = state.freeAgents.findIndex(x => x.id === id);
+  if(idx === -1) return; var p = state.freeAgents[idx];
+  p.id = PID++; my.players.push(p); state.freeAgents.splice(idx, 1);
+  toast(p.name + " bergabung!"); render(); saveGame();
+}
+
+// 6. SPONSOR
+function renderSponsor(){
+  var my = state.teams[state.myIdx];
+  if(!state.sponsorOffers || state.sponsorOffers.length === 0){
+    state.sponsorOffers = [
+      {id: Date.now()+1, name: 'Bank Nusantara', value: 50e9, color: '#1a3a8f'},
+      {id: Date.now()+2, name: 'Kopi Kapal Api', value: 20e9, color: '#8b0000'},
+      {id: Date.now()+3, name: 'Telkomsel', value: 100e9, color: '#e63946'}
+    ];
+  }
+  var html = '<div class="card"><h2>Sponsor</h2>';
+  if(state.sponsors && state.sponsors.length > 0){
+    html += '<div style="background:#0f1a15;padding:10px;border-radius:8px;margin-bottom:12px;border-left:3px solid #2ecc71"><div style="font-size:10px;color:#7fae94">SPONSOR AKTIF</div><div style="font-size:12px;font-weight:bold;color:#2ecc71">' + state.sponsors.map(s=>s.name).join(', ') + '</div></div>';
+  }
+  html += '<h3>Tawaran Masuk</h3>';
+  state.sponsorOffers.forEach(function(s){
+    html += '<div style="background:#0f1a15;border-left:4px solid '+s.color+';padding:12px;margin-bottom:8px;border-radius:8px;display:flex;justify-content:space-between;align-items:center">'+
+      '<div><b style="color:'+s.color+';font-size:13px">'+s.name+'</b><br><span style="font-size:11px;color:#8bb59f">Nilai: '+formatIDR(s.value)+'</span></div>'+
+      '<button class="btn primary small" onclick="acceptSponsor('+s.id+')">Tanda Tangan</button></div>';
+  });
+  return html + '</div>';
+}
+function acceptSponsor(id){
+  var my = state.teams[state.myIdx]; var idx = state.sponsorOffers.findIndex(x => x.id === id);
+  if(idx === -1) return; var s = state.sponsorOffers[idx];
+  my.budget += s.value; state.sponsors.push(s); state.sponsorOffers.splice(idx, 1);
+  toast("Sponsor diterima! +" + formatIDR(s.value)); render(); saveGame();
+}
+
+// 7. TOKO
+function renderToko(){
+  var my = state.teams[state.myIdx];
+  var items = [
+    {id: 'energy', name: 'Minuman Energi', price: 5e9, desc: 'Stamina +100%'},
+    {id: 'booster', name: 'Booster Pemain', price: 20e9, desc: '+2 Rating Permanen'},
+    {id: 'medkit', name: 'Kit Medis', price: 15e9, desc: 'Sembuhkan Cedera'}
+  ];
+  var html = '<div class="card"><h2>Toko Klub</h2>';
+  items.forEach(function(item){
+    var afford = my.budget >= item.price;
+    html += '<div style="background:#0f1a15;padding:12px;margin-bottom:8px;border-radius:10px;display:flex;justify-content:space-between;align-items:center">'+
+      '<div><b style="color:#e8f0ec">'+item.name+'</b><br><span style="font-size:10px;color:#8bb59f">'+item.desc+'</span></div>'+
+      '<button class="btn small '+(afford?'primary':'')+'" '+(afford?'':'disabled')+' onclick="buyItem(\''+item.id+'\','+item.price+')">Beli ('+formatIDRShort(item.price)+')</button></div>';
+  });
+  return html + '</div>';
+}
+function buyItem(id, price){
+  var my = state.teams[state.myIdx]; if(my.budget < price) return;
+  my.budget -= price; toast("Item dibeli!"); render(); saveGame();
+}
+
+// 8. IPO & AKUISISI (UI Rapi)
+function renderIPO(){
+  return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:40px">📈</div><h2 style="margin:10px 0">Bursa Saham</h2><p style="font-size:12px;color:#8bb59f;margin-bottom:15px">Buka akses publik untuk mendapatkan dana segar.</p><button class="btn" disabled style="width:100%;padding:12px">Segera Hadir</button></div>';
+}
+function renderAkuisisi(){
+  return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:40px">🤝</div><h2 style="margin:10px 0">Akuisisi Klub</h2><p style="font-size:12px;color:#8bb59f;margin-bottom:15px">Beli saham mayoritas klub lain.</p><button class="btn" disabled style="width:100%;padding:12px">Segera Hadir</button></div>';
+}
+
+// 9. STADION
+function renderStadion(){
+  var my = state.teams[state.myIdx];
+  var cap = my.stadium ? my.stadium.cap : 10000; var lvl = my.stadium ? my.stadium.level : 1;
+  var html = '<div class="card"><h2>Stadion</h2><div style="background:#0f1a15;padding:20px;border-radius:12px;margin-bottom:15px;text-align:center;border:1px solid #24382e">'+
+    '<div style="font-size:40px;margin-bottom:10px">🏟️</div><div style="font-size:16px;font-weight:bold;color:#a8e6c1">Level '+lvl+'</div><div style="font-size:12px;color:#8bb59f;margin-top:5px">Kapasitas: '+cap.toLocaleString()+' Penonton</div></div>';
+  if(lvl < 5){
+    var cost = lvl * 100e9; var afford = my.budget >= cost;
+    html += '<button class="btn primary" style="width:100%;padding:14px" '+(afford?'':'disabled')+' onclick="upgradeStadium('+cost+')">Upgrade (+10.000 Kursi) - '+formatIDRShort(cost)+'</button>';
+  } else { html += '<p style="text-align:center;color:#2ecc71;font-size:12px;font-weight:bold;">Stadion sudah maksimal!</p>'; }
+  return html + '</div>';
+}
+function upgradeStadium(cost){
+  var my = state.teams[state.myIdx]; if(my.budget < cost) return;
+  my.budget -= cost; my.stadium.level++; my.stadium.cap += 10000;
+  toast("Stadion berhasil di-upgrade!"); render(); saveGame();
+}
+
+// 10. FITUR KOMPETISI (Piala, Stats, Legenda, Riwayat, Berita)
+function renderPiala(){
+  return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:40px">🏆</div><h2 style="margin:10px 0">Piala Nasional</h2><p style="font-size:12px;color:#8bb59f;">Piala akan bergulir seiring berjalannya musim.</p></div>';
+}
+function renderStats(){
+  var top = topScorers();
+  var html = '<div class="card"><h2>Top Skor</h2><table><tr><th>Pemain</th><th>Klub</th><th class="num">Gol</th></tr>';
+  if(top.length===0) html += '<tr><td colspan="3" class="empty">Belum ada gol.</td></tr>';
+  else top.slice(0,10).forEach(function(x){ html += '<tr><td>'+x.p.name+'</td><td>'+x.t.name+'</td><td class="num" style="color:#2ecc71;font-weight:bold">'+x.p.seasonGoals+'</td></tr>'; });
+  return html + '</table></div>';
+}
+function renderLegenda(){
+  return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:40px">👑</div><h2 style="margin:10px 0">Legenda Klub</h2><p style="font-size:12px;color:#8bb59f;">Pemain dengan kontribusi tertinggi sepanjang masa akan tercatat di sini.</p></div>';
+}
+function renderRiwayat(){
+  var html = '<div class="card"><h2>Riwayat Musim</h2>';
+  if(!state.history || state.history.length === 0) html += '<div class="empty">Belum ada riwayat.</div>';
+  else html += '<table><tr><th>Musim</th><th>Tim</th><th>Posisi</th></tr>' + state.history.map(h => '<tr><td>'+h.season+'</td><td>'+h.myTeam+'</td><td>#'+h.myPos+'</td></tr>').join('') + '</table>';
+  return html + '</div>';
+}
+function renderBerita(){
+  var html = '<div class="card"><h2>Berita Sepak Bola</h2>';
+  if(state.news.length===0) html += '<div class="empty">Belum ada berita hari ini.</div>';
+  else state.news.forEach(function(n){ html += '<div class="news-item"><div class="head">'+n.t+'</div><div class="time">'+n.time+'</div></div>'; });
+  return html + '</div>';
+}
+
+/* ==================== MESIN ANIMASI LAPANGAN 2D (SVG) ==================== */
+var pitchAnim = { raf: null, running: false, players: [], ball: null, t: 0, lastT: 0 };
+function renderPossessionBar(){ return ''; }
 function updatePossession(){}
-function updatePitch(){}
-function resetPitch(){}
-function initPitchAnim(){}
-function stopPitchAnim(){}
+
+function initPitchAnim() {
+  stopPitchAnim(); var svg = document.querySelector('.pitch'); if (!svg) return;
+  var pps = svg.querySelectorAll('.pp'); pitchAnim.players = [];
+  for (var i = 0; i < pps.length; i++) {
+    var g = pps[i]; var bx = +g.dataset.bx; var by = +g.dataset.by;
+    pitchAnim.players.push({ el: g, bx: bx, by: by, x: bx, y: by, tx: bx, ty: by, seed: Math.random() * Math.PI * 2 });
+  }
+  var ballEl = svg.querySelector('#pitchBall');
+  pitchAnim.ball = ballEl ? { el: ballEl, x: 50, y: 32, tx: 50, ty: 32 } : null;
+  pitchAnim.t = 0; pitchAnim.lastT = performance.now(); pitchAnim.running = true; pitchAnim.raf = requestAnimationFrame(loopPitchAnim);
+}
+function stopPitchAnim() {
+  pitchAnim.running = false; if (pitchAnim.raf) { cancelAnimationFrame(pitchAnim.raf); pitchAnim.raf = null; }
+}
+function loopPitchAnim() {
+  if (!pitchAnim.running) return;
+  var now = performance.now(); var dt = Math.min(60, now - pitchAnim.lastT); pitchAnim.lastT = now; pitchAnim.t += dt * 0.001;
+  for (var i = 0; i < pitchAnim.players.length; i++) {
+    var p = pitchAnim.players[i]; var swayX = Math.sin(pitchAnim.t * 0.9 + p.seed) * 0.5; var swayY = Math.cos(pitchAnim.t * 0.7 + p.seed * 1.7) * 0.4;
+    p.x += ((p.tx + swayX) - p.x) * 0.075; p.y += ((p.ty + swayY) - p.y) * 0.075;
+    p.el.setAttribute('transform', 'translate(' + p.x.toFixed(2) + ',' + p.y.toFixed(2) + ')');
+  }
+  if (pitchAnim.ball) { var b = pitchAnim.ball; b.x += (b.tx - b.x) * 0.09; b.y += (b.ty - b.y) * 0.09; b.el.setAttribute('transform', 'translate(' + b.x.toFixed(2) + ',' + b.y.toFixed(2) + ')'); }
+  pitchAnim.raf = requestAnimationFrame(loopPitchAnim);
+}
+function updatePitch(e) {
+  if (!pitchAnim.players.length) initPitchAnim();
+  if (pitchAnim.ball) {
+    var bx = 50, by = 32;
+    if (e.type === 'goal') { bx = e.team === 'home' ? ri(91, 95) : ri(5, 9); by = ri(27, 37); } 
+    else if (e.type === 'commentary') { bx = ri(30, 70); by = ri(10, 54); } 
+    else if (e.type === 'card') { bx = ri(25, 75); by = ri(15, 49); }
+    pitchAnim.ball.tx = bx; pitchAnim.ball.ty = by;
+  }
+  var ballX = pitchAnim.ball ? pitchAnim.ball.tx : 50; var ballY = pitchAnim.ball ? pitchAnim.ball.ty : 32;
+  for (var i = 0; i < pitchAnim.players.length; i++) {
+    var p = pitchAnim.players[i];
+    p.tx = Math.max(2, Math.min(98, p.bx + (ballX - p.bx) * 0.10 + rnd(-2, 2)));
+    p.ty = Math.max(2, Math.min(62, p.by + (ballY - p.by) * 0.06 + rnd(-2, 2)));
+  }
+}
+function resetPitch() {
+  if (!pitchAnim.players.length) initPitchAnim();
+  for (var i = 0; i < pitchAnim.players.length; i++) { pitchAnim.players[i].tx = pitchAnim.players[i].bx; pitchAnim.players[i].ty = pitchAnim.players[i].by; }
+  if (pitchAnim.ball) { pitchAnim.ball.tx = 50; pitchAnim.ball.ty = 32; }
+      }
 
 /* ==================== FUNGSI PENDUKUNG (ANTI ERROR KALENDER) ==================== */
 function calcHomeMatchRevenue(team, opp, myScore, oppScore){
