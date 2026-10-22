@@ -841,6 +841,32 @@ function playerNeedsReducedContract(p){
   return false;
 }
 
+/* ==================== VALIDASI STARTING XI ==================== */
+function ensureValidStartingXI() {
+  var my = state.teams[state.myIdx];
+  if (!my) return;
+  
+  // Pastikan array xi ada
+  if (!my.xi) my.xi = [];
+
+  var currentXI = my.xi.map(id => getP(my, id)).filter(Boolean);
+  var hasGK = currentXI.some(p => p.pos === 'GK');
+  
+  // Jika tidak ada kiper, atau pemain kurang dari 11
+  if (!hasGK || currentXI.length < 11) {
+      // Gunakan fungsi autoPickXI bawaan game untuk merombak XI
+      autoPickXI(my, my.formation || '4-3-3');
+  }
+}
+
+function isXIValid() {
+  var my = state.teams[state.myIdx];
+  if (!my || !my.xi) return false;
+  var currentXI = my.xi.map(id => getP(my, id)).filter(Boolean);
+  var hasGK = currentXI.some(p => p.pos === 'GK');
+  return currentXI.length === 11 && hasGK;
+}
+
 window.onload = function() { 
   try { render(); } catch(e) { alert("Gagal memuat game: " + e.message); } 
 };
