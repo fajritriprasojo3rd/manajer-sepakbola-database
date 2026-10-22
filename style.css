@@ -54,3 +54,29 @@ tr.mine td{background:rgba(46,204,113,.12);font-weight:700}
 #createModal .inner{background:#0f1a15;border:2px solid #2ecc71;border-radius:16px;padding:20px;width:100%;max-width:400px;max-height:85vh;overflow-y:auto;color:#e8f0ec;box-shadow:0 10px 30px rgba(0,0,0,0.5);}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#e63946;color:#fff;padding:10px 18px;border-radius:10px;font-size:12px;font-weight:600;z-index:99999;text-align:center}
+
+/* ==================== TOMBOL DIVISI KLASEMEN ==================== */
+.div-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+.div-btn {
+  flex: 1;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12px;
+  font-family: inherit;
+  border: 1px solid #24382e;
+  background: #131e19;
+  color: #8bb59f;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.div-btn.active {
+  background: #2ecc71;
+  color: #04160c;
+  border-color: #2ecc71;
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.3);
+}
