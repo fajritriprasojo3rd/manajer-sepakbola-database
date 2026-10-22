@@ -424,9 +424,13 @@ function renderSquad(){
     '<th class="num" style="padding:5px 3px;font-size:8px">OVR</th></tr>';
     
   return '<div class="card" style="padding:0">'+
-    '<div style="padding:10px 14px;border-bottom:1px solid #24382e;display:flex;justify-content:space-between">'+
-    '<div style="font-size:12px;font-weight:800;color:#a8e6c1">PEMAIN ('+my.players.length+')</div>'+
-    '<div style="font-size:10px;color:#7fae94">Tap: swap - (i): detail</div></div>'+
+    '<div style="padding:10px 14px;border-bottom:1px solid #24382e;display:flex;justify-content:space-between;align-items:center;">'+
+      '<div style="font-size:12px;font-weight:800;color:#a8e6c1">PEMAIN ('+my.players.length+')</div>'+
+      '<div style="display:flex;gap:8px;align-items:center;">'+
+        '<div style="font-size:10px;color:#7fae94;display:none;">Tap: swap</div>'+
+        '<button class="btn small primary" onclick="autoLineup()">⚡ Auto XI</button>'+
+      '</div>'+
+    '</div>'+
     '<div class="scroll-box" style="max-height:600px"><table style="font-size:11px;width:100%">'+tblH+
     '<tr style="background:#0f1a15"><td colspan="6" style="font-size:9px;color:#2ecc71;font-weight:800;padding:5px 8px">STARTING XI ('+starters.length+'/11)</td></tr>'+
     starters.map(function(p){return rowHTML(p,'starter');}).join('')+
