@@ -1280,3 +1280,141 @@ window.onload = function() {
         alert("Gagal memuat game: " + e.message);
     }
 };
+
+/* =======================================================
+   FUNGSI JANTUNG GAME YANG HILANG (WAJIB DITAMBAHKAN)
+   ======================================================= */
+
+// 1. Fungsi Statistik Tim (Untuk Simulasi)
+function teamStats(team) {
+  var xi=team.xi.map(function(id){return getP(team,id);}).filter(Boolean);
+  var by={GK:[],DEF:[],MID:[],FWD:[]};
+  xi.forEach(function(p){by[p.pos].push(p.rating);});
+  var gk=avg(by.GK),def=avg(by.DEF),mid=avg(by.MID),fwd=avg(by.FWD);
+  var atk=fwd*.55+mid*.30+def*.15;
+  var dfn=gk*.35+def*.45+mid*.20;
+  if(team.tactics && team.tactics.mentality==='menyerang'){atk*=1.10;dfn*=0.92;}
+  else if(team.tactics && team.tactics.mentality==='defensif'){atk*=0.90;dfn*=1.10;}
+  return {atk:atk,def:dfn,mid:mid};
+}
+
+// 2. Fungsi Pemilih Pencetak Gol
+function pickScorer(team) {
+  var xi=team.xi.map(function(id){return getP(team,id);}).filter(Boolean);
+  if(!xi.length) return null;
+  var w={GK:0,DEF:1,MID:3.5,FWD:6};
+  var total=0;
+  xi.forEach(function(p){
+    var weight=w[p.pos]||1;
+    if(p.playStyle==='Sayap Cut Inside') weight+=2.5;
+    if(p.playStyle==='Pemain Sayap Kreatif') weight+=1.5;
+    if(p.playStyle==='Pemburu Gol') weight+=1;
+    if(p.playStyle==='Target Man') weight+=0.5;
+    total+=weight;
+  });
+  var r=Math.random()*total;
+  for(var i=0;i<xi.length;i++){
+    var weight2=w[xi[i].pos]||1;
+    if(xi[i].playStyle==='Sayap Cut Inside') weight2+=2.5;
+    if(xi[i].playStyle==='Pemain Sayap Kreatif') weight2+=1.5;
+    if(xi[i].playStyle==='Pemburu Gol') weight2+=1;
+    if(xi[i].playStyle==='Target Man') weight2+=0.5;
+    r-=weight2;
+    if(r<=0) return xi[i];
+  }
+  return xi[xi.length-1];
+}
+
+// 3. Fungsi Pemilih Pemberi Umpan (Assist)
+function pickAssist(team, scorerId) {
+  var xi=team.xi.map(function(id){return getP(team,id);}).filter(function(p){return p&&p.id!==scorerId;});
+  if(!xi.length) return null;
+  var w={GK:0,DEF:1,MID:5,FWD:4};
+  var total=0;
+  xi.forEach(function(p){
+    var weight=w[p.pos]||1;
+    if(p.playStyle==='Spesialis Umpan Silang') weight+=4;
+    if(p.playStyle==='Pemain Sayap Kreatif') weight+=3;
+    if(p.playStyle==='Otak Permainan') weight+=3;
+    if(p.playStyle==='Playmaker Kreatif') weight+=3;
+    if(p.playStyle==='Pembantu Serangan') weight+=2;
+    if(p.playStyle==='Box-To-Box') weight+=1;
+    total+=weight;
+  });
+  var r=Math.random()*total;
+  for(var i=0;i<xi.length;i++){
+    var weight2=w[xi[i].pos]||1;
+    if(xi[i].playStyle==='Spesialis Umpan Silang') weight2+=4;
+    if(xi[i].playStyle==='Pemain Sayap Kreatif') weight2+=3;
+    if(xi[i].playStyle==='Otak Permainan') weight2+=3;
+    if(xi[i].playStyle==='Playmaker Kreatif') weight2+=3;
+    if(xi[i].playStyle==='Pembantu Serangan') weight2+=2;
+    if(xi[i].playStyle==='Box-To-Box') weight2+=1;
+    r-=weight2;
+    if(r<=0) return xi[i];
+  }
+  return xi[0];
+}
+
+// 4. Fungsi Pemilih MVP
+function pickMVP(team) {
+  var xi=team.xi.map(function(id){return getP(team,id);}).filter(Boolean);
+  if(!xi.length) return null;
+  var w=xi.map(function(p){return Math.pow(p.rating,2);});
+  var total=w.reduce(function(a,b){return a+b;},0);
+  var r=Math.random()*total;
+  for(var i=0;i<xi.length;i++){r-=w[i];if(r<=0) return xi[i];}
+  return xi[xi.length-1];
+}
+
+// 5. Fungsi Nilai Pasar, Gaji, & Cek Senior
+function marketValue(p) {
+  var ageF=p.age<=23?1.4:p.age<=27?1.2:p.age<=30?0.9:p.age<=33?0.5:0.25;
+  return Math.max(3,Math.round((p.rating-40)*(p.rating-40)/30*ageF))*1e9;
+}
+
+function weeklyWage(p) { return Math.round((p.rating-40)*1.5e6); }
+
+function playerNeedsReducedContract(p) {
+  if(p.age>=32) return true;
+  if(p.previousRating&&p.previousRating>p.rating+3) return true;
+  return false;
+}
+
+// 6. Fungsi Top Skor & Akumulasi Musim
+function topScorers() {
+  var all=[];
+  state.teams.forEach(function(t){t.players.forEach(function(p){if(p.seasonGoals>0) all.push({p:p,t:t});});});
+  all.sort(function(a,b){return b.p.seasonGoals-a.p.seasonGoals;});
+  return all;
+}
+
+function accumulateSeason() {
+  state.teams.forEach(function(t){
+    t.players.forEach(function(p){
+      var cats = {scorers: p.seasonGoals, assisters: p.assists, mvp: p.mvp, cs: p.cs, apps: p.apps, cards: p.yellow+p.red*2};
+      Object.keys(cats).forEach(function(cat){
+        if(!state.allTime[cat]) state.allTime[cat] = {};
+        if(!state.allTime[cat][p.name]) state.allTime[cat][p.name] = {name:p.name, val:0, teams:[]};
+        state.allTime[cat][p.name].val += cats[cat];
+        if(state.allTime[cat][p.name].teams.indexOf(t.name)===-1) state.allTime[cat][p.name].teams.push(t.name);
+      });
+    });
+  });
+}
+
+function randomizeAIFormations() {
+  var forms=Object.keys(FORMATIONS);
+  state.teams.forEach(function(t,i){
+    if(i===state.myIdx) return;
+    if(Math.random()<0.5){t.formation=pick(forms);autoPickXI(t,t.formation);}
+    t.tactics.mentality=pick(['seimbang','menyerang','defensif']);
+  });
+}
+
+// 7. Fungsi Suara & Komentator (Mencegah Error saat Match)
+function sfxWhistle(){}
+function sfxGoal(){}
+function sfxCard(){}
+function speakComment(){}
+function openPressConference(){ state.pcAnswered = true; }
