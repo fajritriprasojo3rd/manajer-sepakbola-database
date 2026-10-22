@@ -513,6 +513,51 @@ function renderSelect(){
   return header+slotsCard+'<div class="card"><h2>Mulai Karier Baru</h2><p style="font-size:12px;color:#8bb59f;margin-bottom:12px"><b style="color:#e9c46a">Promosi:</b> 3 teratas Div 2 - <b style="color:#e63946">Degradasi:</b> 3 terbawah Div 1</p><h3>Divisi 1</h3><div class="teams">'+byDiv[1].map(cardFn).join('')+'</div><h3 style="margin-top:16px">Divisi 2</h3><div class="teams">'+byDiv[2].map(cardFn).join('')+'</div></div>';
 }
 
+/* ==================== RENDER DISPATCHER ==================== */
+function render(){
+  try{
+    if(state.godMode && state.teams[state.myIdx]) state.teams[state.myIdx].budget=1e18;
+    var app=document.getElementById('app');
+    if(!app) return;
+
+    if(state.view==='select'){
+        app.innerHTML=renderSelect();
+    } else {
+      var my=state.teams[state.myIdx];
+      if(!my){state.view='select';render();return;}
+      if(state.settingsOpen){stopPitchAnim();app.innerHTML=renderSettings();}
+      else if(state.view==='main'){stopPitchAnim();app.innerHTML=renderMain();}
+      else if(state.view==='match'){app.innerHTML=renderMatch();setTimeout(initPitchAnim,0);}
+      else if(state.view==='seasonEnd'){stopPitchAnim();app.innerHTML=renderSeasonEnd();}
+    }
+    
+    if(state.dev && typeof renderDevPanel === 'function') renderDevPanel();
+    if(state.view!=='select') scheduleSave();
+    if(state.view!=='match' && typeof pitchAnim !== 'undefined' && pitchAnim.running) stopPitchAnim();
+    
+    var sb=document.getElementById('soundBtn');
+    if(sb){sb.textContent=state.sound?'\uD83D\uDD0A':'\uD83D\uDD07';sb.className='hdr-icon'+(state.sound?'':' off');}
+    var tb=document.getElementById('themeBtn');
+    if(tb) tb.textContent=state.theme==='dark'?'\uD83C\uDF19':'\u2600';
+    var xb=document.getElementById('exitBtn');
+    if(xb) xb.style.display=(state.view==='select'||state.settingsOpen)?'none':'flex';
+    var stb=document.getElementById('settingsBtn');
+    if(stb) stb.style.display=(state.view==='select')?'none':'flex';
+    
+    var gb=document.getElementById('godBadge');
+    if(state.godMode && !gb){var g=document.createElement('div');g.id='godBadge';g.textContent='GOD MODE';document.body.appendChild(g);}
+    else if(!state.godMode && gb){gb.remove();}
+    
+    var cb=document.getElementById('crisisBadge');
+    if(typeof isCrisisActive === 'function' && isCrisisActive() && !cb){var c2=document.createElement('div');c2.id='crisisBadge';c2.textContent='KLB AKTIF';document.body.appendChild(c2);}
+    else if((typeof isCrisisActive !== 'function' || !isCrisisActive()) && cb){cb.remove();}
+  }catch(err){
+    console.warn('render error',err);
+    var eb=document.getElementById('errBox');
+    if(!eb){eb=document.createElement('div');eb.id='errBox';eb.onclick=function(){this.remove();};document.body.appendChild(eb);}
+    eb.textContent='ERROR: '+(err.message||err)+' - ketuk untuk tutup';
+  }
+                                                                                                                                                                                                                                       }
 /* ==================== INIT ==================== */
 (function init(){
   try{
