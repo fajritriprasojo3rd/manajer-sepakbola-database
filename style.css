@@ -31,3 +31,40 @@ tr.mine td{background:rgba(46,204,113,.12);font-weight:700}
 .team-card{background:#16241d;border:1px solid #27402f;border-radius:10px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
 .team-card .bar{position:absolute;left:0;top:0;bottom:0;width:4px}
 .team-card .nm{font-weight:700;font-size:12px;margin-left:6px}
+
+/* ==================== PERBAIKAN TOMBOL & KARTU ==================== */
+.subtabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 15px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    -webkit-overflow-scrolling: touch;
+}
+.subtabs::-webkit-scrollbar { display: none; }
+
+.subtab {
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: #131e19;
+    border: 1px solid #24382e;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8bb59f;
+    white-space: nowrap;
+    transition: 0.2s;
+    font-family: inherit;
+}
+.subtab.active {
+    background: linear-gradient(100deg, #2ecc71, #20a35a);
+    color: #04160c;
+    border-color: #2ecc71;
+    font-weight: 800;
+}
+
+/* Perbaikan Tabel & Tombol Aksi */
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th { text-align: left; padding: 8px 4px; color: #7fae94; font-size: 10px; border-bottom: 1px solid #24382e; }
+td { padding: 8px 4px; border-bottom: 1px solid #1b2a22; vertical-align: middle; }
+.btn.small { padding: 6px 10px; font-size: 10px; border-radius: 6px; }
