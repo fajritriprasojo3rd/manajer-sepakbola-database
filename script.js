@@ -1,75 +1,130 @@
 // ==========================================
-// BAGIAN 1: KONFIGURASI & DATA MASTER
+// KONFIGURASI SUPABASE (CLOUD)
 // ==========================================
 const SUPABASE_URL = 'https://ocqedmogvkcvfkjekayr.supabase.co'; 
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jcWVkbW9ndmtjdmZramVrYXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2NTk0NzIsImV4cCI6MjEwODIzNTQ3Mn0.bQFVAIbaquQOj7sTT_CZQbZmgE7v2EmnpkE-zbW6w3Y';
 let _supabase = null;
-if (typeof supabase !== 'undefined') {
-    _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-}
+if (typeof supabase !== 'undefined') { _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
 
+// ==========================================
+// UTILITAS DASAR
+// ==========================================
 var rnd=function(a,b){return Math.random()*(b-a)+a;};
 var ri=function(a,b){return Math.floor(rnd(a,b+1));};
 var pick=function(a){return a[Math.floor(Math.random()*a.length)];};
 var avg=function(a){return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:60;};
-function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}}
-function formatIDR(n){
-  if(state.godMode && n>0) return 'INF';
-  var rp=Math.abs(n);
-  var sign=n<0?'-':'';
-  if(rp>=1e15) return sign+'Rp '+(rp/1e15).toFixed(2)+' P';
-  if(rp>=1e12) return sign+'Rp '+(rp/1e12).toFixed(2)+' T';
-  if(rp>=1e9)  return sign+'Rp '+(rp/1e9).toFixed(2)+' M';
-  if(rp>=1e6)  return sign+'Rp '+(rp/1e6).toFixed(1)+' jt';
-  if(rp>=1e3)  return sign+'Rp '+(rp/1e3).toFixed(0)+' rb';
-  return sign+'Rp '+Math.round(rp);
-}
-function formatIDRShort(n){
-  var rp=Math.abs(n);
-  var sign=n<0?'-':'';
-  if(rp>=1e15) return sign+(rp/1e15).toFixed(1)+'P';
-  if(rp>=1e12) return sign+(rp/1e12).toFixed(1)+'T';
-  if(rp>=1e9)  return sign+(rp/1e9).toFixed(1)+'M';
-  if(rp>=1e6)  return sign+(rp/1e6).toFixed(0)+'jt';
-  if(rp>=1e3)  return sign+(rp/1e3).toFixed(0)+'rb';
-  return sign+Math.round(rp);
-}
-function nameInitials(name){
-  var parts=name.split(' ');
-  if(parts.length===1) return parts[0].slice(0,2).toUpperCase();
-  return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();
-}
-function nameColor(name){
-  var h=0;
-  for(var i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))>>>0;
-  var colors=['#e63946','#f4a261','#2a9d8f','#e9c46a','#457b9d','#5e60ce','#8ac926','#ff6b6b','#06d6a0','#118ab2','#ef476f','#ffd166','#8338ec','#fb5607','#3a86ff','#ffbe0b','#7209b7','#f72585','#4cc9f0','#4361ee'];
-  return colors[h%colors.length];
-}
+function formatIDR(n){if(state.godMode&&n>0)return'INF';var rp=Math.abs(n);var sign=n<0?'-':'';if(rp>=1e12)return sign+'Rp '+(rp/1e12).toFixed(2)+' T';if(rp>=1e9)return sign+'Rp '+(rp/1e9).toFixed(2)+' M';if(rp>=1e6)return sign+'Rp '+(rp/1e6).toFixed(1)+' jt';return sign+'Rp '+Math.round(rp);}
+function nameInitials(name){var parts=name.split(' ');if(parts.length===1)return parts[0].slice(0,2).toUpperCase();return(parts[0][0]+parts[parts.length-1][0]).toUpperCase();}
+function nameColor(name){var h=0;for(var i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;var colors=['#e63946','#f4a261','#2a9d8f','#e9c46a','#457b9d','#5e60ce','#8ac926','#ff6b6b','#06d6a0','#118ab2','#ef476f','#ffd166','#8338ec','#fb5607','#3a86ff','#ffbe0b','#7209b7','#f72585','#4cc9f0','#4361ee'];return colors[h%colors.length];}
 
-var NAMA_DEPAN=['Budi','Agus','Slamet','Bambang','Joko','Wawan','Tono','Sutrisno','Sumarno','Wahyu','Bowo','Bagus','Yanto','Krisna','Wisnu','Bimo','Aryo','Damar','Bayu','Galih','Rangga','Yoga','Hendra','Heru','Wibowo','Harto','Hartono','Suparman','Purnomo','Teguh','Tri','Utomo','Waluyo','Eko','Edi','Dwi','Ujang','Asep','Dedi','Dadan','Yudi','Iwan','Endang','Rian','Ridwan','Ahmad','Cecep','Nandang','Deni','Rudi','Taufik','Iman','Udin','Hendi','Yana','Supri','Binsar','Togar','Ronald','Maruli','Lamhot','Rudolf','Tigor','Hasudungan','Parlindungan','Sahat','Adi','Rizal','Firman','Arif','Doni','Reza','Riki','Yogi','Rama','Andre','Rahmat','Hendri','Andi','Baso','Daeng','Karim','Muhammad','Yusuf','Hasim','Rahman','Salim','Wayan','Made','Nyoman','Ketut','Gede','Putu','Kadek','Komang','Agung','Abdul','Hasan','Husain','Ibrahim','Fauzi','Hamzah','Idris','Iskandar','Salman','Umar','Ali','Zaid','Ridho','Fikri','Hafiz','Faris','Zaki','Rafi','Alif','Naufal','Daffa','Farhan','Fajar','Rizky','Rizki','Bima','Satria','Panji','Ilham','Arya','Dimas','Adit','Gilang','Vino','Rio','Anton','Bagas','Bintang','Cahyo','Dani','Ferdi','Hanif','Iqbal','Jefri','Kevin','Lukman','Maulana','Nanda','Pandu','Rendi','Sandi','Tama','Vicky','Yudha','Zulfikar','Alvin','Dika','Elang','Fathan','Genta','Joni','Kurnia','Lukito','Miko','Nata'];
-var NAMA_TENGAH=['Adi','Aji','Alam','Anugrah','Ardi','Arif','Arya','Bagas','Bagus','Bakti','Bayu','Bima','Budi','Cahya','Cakra','Damar','Darma','Dewa','Dharma','Dwi','Eka','Eko','Fajar','Fikri','Galih','Genta','Giri','Gunawan','Hadi','Hakim','Hendra','Hidayat','Ilham','Indra','Iqbal','Irawan','Jaya','Karya','Kusuma','Laksana','Maulana','Mulya','Nanda','Nugraha','Nur','Pandu','Pangestu','Perkasa','Prabowo','Pradana','Prakoso','Pratama','Purnama','Putra','Rahayu','Rahman','Rahmat','Rizki','Rizky','Sakti','Saputra','Satria','Setiawan','Surya','Susanto','Tama','Teguh','Tri','Utama','Wahyu','Wibawa','Wijaya','Wira','Yudha','Yulianto','Zaki','Arta','Aditya','Bagaskara','Baskara','Dermawan','Firdaus','Gunadi','Hartanto','Iskandar','Jatmiko','Kartika','Kurnia','Mahendra','Nugroho','Pramudya','Raharjo','Santika','Sasmita'];
-var NAMA_BELAKANG=['Santoso','Wijaya','Susanto','Hartono','Suryana','Kusuma','Santika','Wibowo','Purnomo','Setiawan','Nugroho','Saputra','Hidayat','Kurniawan','Permana','Wardana','Prabowo','Utomo','Suharto','Sudirman','Gunawan','Wibisono','Santosa','Rahardjo','Suryanto','Waluyo','Siswanto','Hariyanto','Prasetyo','Sutanto','Sugiarto','Suprapto','Supriyadi','Widodo','Herdiana','Sudrajat','Suryadi','Supriatna','Suhanda','Suhendar','Kurnia','Setiadi','Wijayanto','Siregar','Simbolon','Nasution','Sitompul','Hutapea','Panjaitan','Sinaga','Sihombing','Sitohang','Napitupulu','Lubis','Harahap','Pulungan','Daulay','Hasibuan','Ritonga','Simanjuntak','Samosir','Tampubolon','Marbun','Sidabutar','Manurung','Sihaloho','Gultom','Hutagalung','Tanjung','Silalahi','Nainggolan','Simatupang','Sutan','Rajo','Datuk','Malik','Rasyid','Ibrahim','Yusuf','Hasan','Rahman','Chaniago','Koto','Piliang','Sikumbang','Tanjuang','Canigo','Gunung','Jambak','Daeng','Karim','Sultan','Hamid','Sutedja','Wirawan','Sukarta','Ardana','Suardana','Suardika','Sujana','Suwitra','Yadnya','Adnyana','Wiranata','Mahendra','Arimbawa','Hakim','Husain','Fauzi','Ridho','Latif','Wahid','Chalid','Syafii','Habib','Pratama','Putra','Firdaus','Pangestu','Prakoso','Firmansyah','Ramadhan','Iskandar','Syahputra','Anggara'];
-function generateIndonesianName(){
-  var r=Math.random();
-  if(r<0.15) return pick(NAMA_DEPAN);
-  if(r<0.70){
-    var mode=Math.random();
-    if(mode<0.55) return pick(NAMA_DEPAN)+' '+pick(NAMA_BELAKANG);
-    if(mode<0.80) return pick(NAMA_DEPAN)+' '+pick(NAMA_TENGAH);
-    return pick(NAMA_TENGAH)+' '+pick(NAMA_BELAKANG);
-  }
-  return pick(NAMA_DEPAN)+' '+pick(NAMA_TENGAH)+' '+pick(NAMA_BELAKANG);
-}
+// NAMA PEMAIN (Dikompres agar muat)
+var NAMA_DEPAN="Budi,Agus,Slamet,Bambang,Joko,Wawan,Tono,Sutrisno,Sumarno,Wahyu,Bowo,Bagus,Yanto,Krisna,Wisnu,Bimo,Aryo,Damar,Bayu,Galih,Rangga,Yoga,Hendra,Heru,Wibowo,Harto,Hartono,Suparman,Purnomo,Teguh,Tri,Utomo,Waluyo,Eko,Edi,Dwi,Ujang,Asep,Dedi,Dadan,Yudi,Iwan,Endang,Rian,Ridwan,Ahmad,Cecep,Nandang,Deni,Rudi,Taufik,Iman,Udin,Hendi,Yana,Supri,Binsar,Togar,Ronald,Maruli,Lamhot,Rudolf,Tigor,Hasudungan,Parlindungan,Sahat,Adi,Rizal,Firman,Arif,Doni,Reza,Riki,Yogi,Rama,Andre,Rahmat,Hendri,Andi,Baso,Daeng,Karim,Muhammad,Yusuf,Hasim,Rahman,Salim,Wayan,Made,Nyoman,Ketut,Gede,Putu,Kadek,Komang,Agung,Abdul,Hasan,Husain,Ibrahim,Fauzi,Hamzah,Idris,Iskandar,Salman,Umar,Ali,Zaid,Ridho,Fikri,Hafiz,Faris,Zaki,Rafi,Alif,Naufal,Daffa,Farhan,Fajar,Rizky,Rizki,Bima,Satria,Panji,Ilham,Arya,Dimas,Adit,Gilang,Vino,Rio,Anton,Bagas,Bintang,Cahyo,Dani,Ferdi,Hanif,Iqbal,Jefri,Kevin,Lukman,Maulana,Nanda,Pandu,Rendi,Sandi,Tama,Vicky,Yudha,Zulfikar,Alvin,Dika,Elang,Fathan,Genta,Joni,Kurnia,Lukito,Miko,Nata".split(',');
+var NAMA_BELAKANG="Santoso,Wijaya,Susanto,Hartono,Suryana,Kusuma,Santika,Wibowo,Purnomo,Setiawan,Nugroho,Saputra,Hidayat,Kurniawan,Permana,Wardana,Prabowo,Utomo,Suharto,Sudirman,Gunawan,Wibisono,Santosa,Rahardjo,Suryanto,Waluyo,Siswanto,Hariyanto,Prasetyo,Sutanto,Sugiarto,Suprapto,Supriyadi,Widodo,Herdiana,Sudrajat,Suryadi,Supriatna,Suhanda,Suhendar,Kurnia,Setiadi,Wijayanto,Siregar,Simbolon,Nasution,Sitompul,Hutapea,Panjaitan,Sinaga,Sihombing,Sitohang,Napitupulu,Lubis,Harahap,Pulungan,Daulay,Hasibuan,Ritonga,Simanjuntak,Samosir,Tampubolon,Marbun,Sidabutar,Manurung,Sihaloho,Gultom,Hutagalung,Tanjung,Silalahi,Nainggolan,Simatupang,Sutan,Rajo,Datuk,Malik,Rasyid,Ibrahim,Yusuf,Hasan,Rahman,Chaniago,Koto,Piliang,Sikumbang,Tanjuang,Canigo,Gunung,Jambak,Daeng,Karim,Sultan,Hamid,Sutedja,Wirawan,Sukarta,Ardana,Suardana,Suardika,Sujana,Suwitra,Yadnya,Adnyana,Wiranata,Mahendra,Arimbawa,Hakim,Husain,Fauzi,Ridho,Latif,Wahid,Chalid,Syafii,Habib,Pratama,Putra,Firdaus,Pangestu,Prakoso,Firmansyah,Ramadhan,Iskandar,Syahputra,Anggara".split(',');
+function generateIndonesianName(){var r=Math.random();if(r<0.15)return pick(NAMA_DEPAN);if(r<0.70)return pick(NAMA_DEPAN)+' '+pick(NAMA_BELAKANG);return pick(NAMA_DEPAN)+' '+pick(NAMA_BELAKANG);}
 
+// POSISI & FORMASI
 var POSITIONS_SPECIFIC={GK:['GK'],DEF:['CB','RB','LB','LWB','RWB'],MID:['RMF','LMF','CMF','DMF','AMF'],FWD:['SS','CF']};
-function catOf(sp){if(sp==='GK') return 'GK';if(['CB','RB','LB','LWB','RWB'].indexOf(sp)!==-1) return 'DEF';if(['RMF','LMF','CMF','DMF','AMF'].indexOf(sp)!==-1) return 'MID';return 'FWD';}
-var PLAY_STYLES={CF:['Pemburu Gol','Target Man','Pemburu Peluang'],SS:['Penyerang Bayangan','Pemburu Celah','Sayap Cut Inside'],AMF:['Otak Permainan','Playmaker Kreatif','Pemburu Celah'],CMF:['Box-To-Box','Orkestrator'],DMF:['Jangkar','Perusak Serangan'],RMF:['Pemain Sayap Kreatif','Spesialis Umpan Silang','Sayap Cut Inside','Pembantu Serangan','Pemburu Celah'],LMF:['Pemain Sayap Kreatif','Spesialis Umpan Silang','Sayap Cut Inside','Pembantu Serangan','Pemburu Celah'],CB:['Pembangun Serangan','Perusak Serangan'],RB:['Bek Sayap Menyerang','Bek Sayap Bertahan','Spesialis Umpan Silang'],LB:['Bek Sayap Menyerang','Bek Sayap Bertahan','Spesialis Umpan Silang'],RWB:['Bek Sayap Menyerang','Spesialis Umpan Silang','Pemain Sayap Kreatif'],LWB:['Bek Sayap Menyerang','Spesialis Umpan Silang','Pemain Sayap Kreatif'],GK:['Kiper Agresif','Kiper Bertahan','Kiper Build-up','Kiper Stoper']};
-var SKILL_POOL={GK:['Refleks','Posisi','Distribusi','Penyelamatan Penalti','Sweeper Keeper','One-on-One','Kontrol Udara'],DEF:['Tackling','Marking','Heading','Intersepsi','Aerial','Slide Tackle','Blok','Kekuatan Fisik'],MID:['Passing','Vision','Dribbling','Stamina','Long Shot','Playmaker','Ball Control','Crossing'],FWD:['Finishing','Dribbling','Pace','Header','Long Shot','Poacher','Movement','Volley']};
-var SPECIAL_SKILLS={golden:[{id:'freekick',icon:'\uD83C\uDFAF',name:'Raja Bola Mati',desc:'+25% gol dari tendangan bebas'},{id:'clutch',icon:'\uD83D\uDD25',name:'Pemain Penentu',desc:'+rating di babak kedua'},{id:'ironman',icon:'\uD83D\uDCAA',name:'Besi Berjalan',desc:'-50% risiko cedera'},{id:'biggame',icon:'\uD83C\uDFC6',name:'Spesialis Laga Besar',desc:'+rating di laga penting'},{id:'speed',icon:'\u26A1',name:'Kilat',desc:'+peluang gol serangan cepat'},{id:'leader',icon:'\uD83D\uDC51',name:'Panglima Lapangan',desc:'+5% kekuatan serangan tim'},{id:'maestro',icon:'\uD83C\uDFAA',name:'Otak Serangan',desc:'+50% peluang asis'},{id:'finisher',icon:'\u26BD',name:'Algojo Gawang',desc:'+30% peluang gol'}],elite:[{id:'freekick',icon:'\uD83C\uDFAF',name:'Ahli Bola Mati',desc:'+15% gol tendangan bebas'},{id:'clutch',icon:'\uD83D\uDD25',name:'Pemain Laga Penting',desc:'+rating di laga penting'},{id:'ironman',icon:'\uD83D\uDCAA',name:'Tahan Banting',desc:'-30% risiko cedera'},{id:'speed',icon:'\u26A1',name:'Cepat Kaki',desc:'+kecepatan lari'},{id:'maestro',icon:'\uD83C\uDFAA',name:'Kreator Serangan',desc:'+25% peluang asis'},{id:'finisher',icon:'\u26BD',name:'Penembak Jitu',desc:'+15% peluang gol'},{id:'leader',icon:'\uD83D\uDC51',name:'Calon Kapten',desc:'+3% kekuatan serangan tim'}]};
+function catOf(sp){if(sp==='GK')return'GK';if(['CB','RB','LB','LWB','RWB'].indexOf(sp)!==-1)return'DEF';if(['RMF','LMF','CMF','DMF','AMF'].indexOf(sp)!==-1)return'MID';return'FWD';}
+var FORMATIONS={'4-3-3':{GK:1,DEF:['CB','CB','RB','LB'],MID:['CMF','CMF','AMF'],FWD:['CF','SS','SS']},'4-4-2':{GK:1,DEF:['CB','CB','RB','LB'],MID:['RMF','CMF','CMF','LMF'],FWD:['CF','SS']}};
+function formationCounts(fname){var f=FORMATIONS[fname];return {GK:f.GK,DEF:f.DEF.length,MID:f.MID.length,FWD:f.FWD.length};}
 
-var FORMATIONS={'4-3-3':{GK:1,DEF:['CB','CB','RB','LB'],MID:['CMF','CMF','AMF'],FWD:['CF','SS','SS']},'4-4-2':{GK:1,DEF:['CB','CB','RB','LB'],MID:['RMF','CMF','CMF','LMF'],FWD:['CF','SS']},'3-5-2':{GK:1,DEF:['CB','CB','CB'],MID:['RMF','DMF','CMF','AMF','LMF'],FWD:['CF','SS']},'5-3-2':{GK:1,DEF:['RWB','CB','CB','CB','LWB'],MID:['CMF','CMF','AMF'],FWD:['CF','SS']}};
-function formationCounts(fname){var f=FORMATIONS[fname];var c={GK:0,DEF:0,MID:0,FWD:0};if(f.GK) c.GK=f.GK;if(f.DEF instanceof Array) c.DEF=f.DEF.length; else c.DEF=f.DEF||0;if(f.MID instanceof Array) c.MID=f.MID.length; else c.MID=f.MID||0;if(f.FWD instanceof Array) c.FWD=f.FWD.length; else c.FWD=f.FWD||0;return c;}
-var FORMATION_POS={'4-3-3':{GK:[[4,32]],DEF:[[18,24],[18,40],[18,54],[18,10]],MID:[[34,24],[34,40],[42,32]],FWD:[[52,32],[54,10],[54,54]]},'4-4-2':{GK:[[4,32]],DEF:[[18,24],[18,40],[18,54],[18,10]],MID:[[36,10],[36,26],[36,38],[36,54]],FWD:[[54,24],[54,40]]},'3-5-2':{GK:[[4,32]],DEF:[[18,18],[18,32],[18,46]],MID:[[36,8],[36,20],[36,32],[36,44],[36,56]],FWD:[[54,24],[54,40]]},'5-3-2':{GK:[[4,32]],DEF:[[16,8],[16,20],[16,32],[16,44],[16,56]],MID:[[36,20],[36,32],[36,44]],FWD:[[54,24],[54,40]]}};
+// DATA TIM
+var TEAM_DEFS=[
+{name:'Persija Jakarta',div:1,color:'#d90429',base:79},{name:'Persib Bandung',div:1,color:'#1a3a8f',base:78},{name:'Persebaya',div:1,color:'#2ecc71',base:77},{name:'Arema FC',div:1,color:'#0033a0',base:76},{name:'Bali United',div:1,color:'#e63946',base:76},{name:'PSM Makassar',div:1,color:'#d90429',base:75},{name:'Persis Solo',div:1,color:'#e9c46a',base:74},{name:'PSIS Semarang',div:1,color:'#118ab2',base:74},{name:'Persita',div:1,color:'#f4a261',base:73},{name:'Persik Kediri',div:1,color:'#8ac926',base:73},{name:'Bhayangkara FC',div:1,color:'#ffd700',base:72},{name:'Madura United',div:1,color:'#e63946',base:72},{name:'Barito Putera',div:1,color:'#2a9d8f',base:71},{name:'PSS Sleman',div:1,color:'#e67e22',base:71},{name:'Borneo FC',div:1,color:'#ff6b6b',base:70},{name:'Dewa United',div:1,color:'#5e60ce',base:70},{name:'Malut United',div:1,color:'#06d6a0',base:69},{name:'Semen Padang',div:1,color:'#ef476f',base:69},{name:'PSBS Biak',div:1,color:'#00b4d8',base:68},{name:'Persepam',div:1,color:'#cc0000',base:68}
+];
+
+// STATE GLOBAL
+var PID=0; var pendingMatch=null;
+var state={view:'select',season:1,teams:[],fixtures:{1:[],2:[]},round:0,myIdx:null,myDiv:1,mainTab:'beranda',subTab:'squad',theme:'dark',sound:true,activeSlot:1,news:[],godMode:false};
+var TOTAL_ROUNDS=38; var STAMINA_COST=18; var STAMINA_RECOVER=35;
+
+// GENERATOR PEMAIN
+function makeSquad(base){var comp={GK:2,DEF:5,MID:5,FWD:4};var out=[];['GK','DEF','MID','FWD'].forEach(function(cat){for(var i=0;i<comp[cat];i++){var specificPos=pick(POSITIONS_SPECIFIC[cat]);var rating=Math.max(45,Math.min(95,Math.round(base+rnd(-6,6))));out.push({id:PID++,name:generateIndonesianName(),pos:cat,specificPos:specificPos,altPos:[],age:ri(18,34),rating:rating,seasonGoals:0,apps:0,assists:0,cs:0,mvp:0,stamina:100,injury:0,suspension:0,contractYears:ri(1,5)});}});return out;}
+
+// LOGIKA DASAR
+function getP(team,id){if(!team||!team.players)return null;for(var i=0;i<team.players.length;i++){if(team.players[i].id===id)return team.players[i];}return null;}
+function autoPickXI(team,formation){var f=FORMATIONS[formation];var xi=[];var used={};var slots=[];slots.push({cat:'GK',pos:'GK'});['DEF','MID','FWD'].forEach(function(cat){(f[cat]||[]).forEach(function(pos){slots.push({cat:cat,pos:pos});});});slots.forEach(function(slot){var candidates=team.players.filter(function(p){return p.pos===slot.cat&&!used[p.id]&&!p.injury;});if(!candidates.length)candidates=team.players.filter(function(p){return !used[p.id];});if(candidates.length){var best=candidates[0];xi.push(best.id);used[best.id]=true;}});team.xi=xi;}
+function getDivIndices(div){return state.teams.map(function(t,i){return t.div===div?i:-1;}).filter(function(i){return i>=0;});}
+function makeFixtures(teamIndices){var ids=teamIndices.slice();var n=ids.length;var firstLeg=[];for(var r=0;r<n-1;r++){var pairs=[];for(var i=0;i<n/2;i++)pairs.push([ids[i],ids[n-1-i]]);firstLeg.push(pairs);var fixed=ids[0];var rest=ids.slice(1);rest.unshift(rest.pop());ids=[fixed].concat(rest);}var secondLeg=firstLeg.map(function(rd){return rd.map(function(pa){return [pa[1],pa[0]];});});var allRounds=firstLeg.concat(secondLeg);return allRounds.map(function(rd){return rd.map(function(pa){return {home:pa[0],away:pa[1],played:false,hg:0,ag:0};});});}
+function teamStats(team){var xi=team.xi.map(function(id){return getP(team,id);}).filter(Boolean);var by={GK:[],DEF:[],MID:[],FWD:[]};xi.forEach(function(p){by[p.pos].push(p.rating);});return {atk:avg(by.FWD)*.55+avg(by.MID)*.30+avg(by.DEF)*.15, def:avg(by.GK)*.35+avg(by.DEF)*.45+avg(by.MID)*.20};}
+function pickScorer(team){var xi=team.xi.map(function(id){return getP(team,id);}).filter(Boolean);if(!xi.length)return null;var f=xi.filter(function(p){return p.pos==='FWD'||p.pos==='MID';});return f.length?pick(f):pick(xi);}
+function simulateSegment(home,away,fromMin,toMin,ctx){for(var min=fromMin;min<=toMin;min++){if(Math.random()<0.50){var isH2=Math.random()<0.5;var atk=(isH2?ctx.H.atk:ctx.A.atk);var dfn=(isH2?ctx.A.def:ctx.H.def);var pGoal=0.115*(atk/(atk+dfn))*2;var att=isH2?home:away;if(Math.random()<pGoal){var s=pickScorer(att);if(!s)continue;if(isH2)ctx.hg++;else ctx.ag++;ctx.events.push({min:min,type:'goal',team:isH2?'home':'away',text:'GOL! '+s.name+' ('+att.name+')'});}}}}
+function finalizeMatch(home,away,ctx){[home,away].forEach(function(t){t.xi.forEach(function(id){var p=getP(t,id);if(!p)return;p.apps++;p.stamina=Math.max(0,p.stamina-STAMINA_COST);});});}
+function playRound(){try{state.teams.forEach(function(t){t.players.forEach(function(p){if(t.xi.indexOf(p.id)===-1)p.stamina=Math.min(100,p.stamina+STAMINA_RECOVER);if(p.injury>0)p.injury=Math.max(0,p.injury-1);});});var mine=null;[1,2].forEach(function(div){var round=state.fixtures[div][state.round];if(!round)return;round.forEach(function(f){var h=state.teams[f.home],a=state.teams[f.away];var isUser=(f.home===state.myIdx)||(f.away===state.myIdx);var ctx={H:teamStats(h),A:teamStats(a),hg:0,ag:0,events:[]};simulateSegment(h,a,1,90,ctx);if(isUser){mine={f:f,h:h,a:a,ctx:ctx};}else{f.hg=ctx.hg;f.ag=ctx.ag;f.played=true;finalizeMatch(h,a,ctx);}});});pendingMatch=mine;if(mine){state.view='match';render();}else{nextRound();}}catch(err){nextRound();}}
+function nextRound(){state.round++;if(state.round>=TOTAL_ROUNDS){state.view='seasonEnd';}else{state.view='main';state.mainTab='kompetisi';state.subTab='klasemen';}render();saveGame();}
+function getTable(div){var idxs=getDivIndices(div);var t=idxs.map(function(i){return {team:state.teams[i],idx:i,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0};});var map={};t.forEach(function(r){map[r.idx]=r;});state.fixtures[div].forEach(function(rd){rd.forEach(function(f){if(!f.played)return;var h=map[f.home],a=map[f.away];h.P++;a.P++;h.GF+=f.hg;h.GA+=f.ag;a.GF+=f.ag;a.GA+=f.hg;if(f.hg>f.ag){h.W++;a.L++;h.Pts+=3;}else if(f.hg<f.ag){a.W++;h.L++;a.Pts+=3;}else{h.D++;a.D++;h.Pts++;a.Pts++;}});});t.sort(function(x,y){return y.Pts-x.Pts||(y.GF-y.GA)-(x.GF-x.GA);});return t;}
+
+// ==========================================
+// SISTEM CLOUD (SUPABASE)
+// ==========================================
+var saveTimer=null;
+async function saveGame(){if(!state.activeSlot||!_supabase)return;try{await _supabase.from('game_saves').upsert({slot_id:'slot_'+state.activeSlot,game_data:{state:state,PID:PID}},{onConflict:'slot_id'});}catch(e){}}
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveGame,1200);}
+async function loadGame(n){if(!_supabase)return false;try{var d=await _supabase.from('game_saves').select('game_data').eq('slot_id','slot_'+(n||state.activeSlot)).single();if(!d.data||!d.data.game_data)return false;Object.keys(d.data.game_data.state).forEach(function(k){state[k]=d.data.game_data.state[k];});PID=d.data.game_data.PID||0;return true;}catch(e){return false;}}
+async function deleteSaveSlot(n){if(!_supabase)return;await _supabase.from('game_saves').delete().eq('slot_id','slot_'+n);}
+async function getSlotInfo(n){if(!_supabase)return null;try{var d=await _supabase.from('game_saves').select('game_data').eq('slot_id','slot_'+n).single();if(!d.data)return null;var s=d.data.game_data.state;return {team:s.teams[s.myIdx].name,div:s.teams[s.myIdx].div,season:s.season,round:s.round};}catch(e){return null;}}
+async function loadAndPlay(n){var ok=await loadGame(n);if(!ok)return alert('Gagal memuat');state.view='main';render();}
+function exitToMenu(){saveGame();state.view='select';render();}
+async function deleteSlotConfirm(n){if(!confirm('Hapus?'))return;await deleteSaveSlot(n);render();}
+
+// ==========================================
+// FUNGSI RENDER (TAMPILAN UI)
+// ==========================================
+function render(){
+  try{
+    var app=document.getElementById('app');if(!app)return;
+    if(state.view==='select'){app.innerHTML=renderSelect();}
+    else{var my=state.teams[state.myIdx];
+      if(state.view==='main'){app.innerHTML=renderMain();}
+      else if(state.view==='match'){app.innerHTML=renderMatch();}
+      else if(state.view==='seasonEnd'){app.innerHTML=renderSeasonEnd();}
+    }
+    if(state.view!=='select')scheduleSave();
+  }catch(e){document.getElementById('app').innerHTML='<div style="color:red;padding:20px">ERROR: '+e.message+'</div>';}
+}
+
+function renderSelect(){
+  var slotsHTML='';[1,2,3].forEach(function(n){slotsHTML+='<div id="slot-card-'+n+'" style="background:#0f1a15;border:1px solid #24382e;border-radius:10px;padding:12px;margin-bottom:8px"><div style="color:#8bb59f;font-size:12px">Memuat Slot '+n+'...</div></div>';});
+  setTimeout(async function(){for(var i=0;i<3;i++){var n=i+1;var info=await getSlotInfo(n);var el=document.getElementById('slot-card-'+n);if(!el)continue;if(info){el.innerHTML='<b>Slot '+n+'</b><br><span style="font-size:11px">'+info.team+'</span><br><button class="btn primary" onclick="loadAndPlay('+n+')">LANJUTKAN</button>';}else{el.innerHTML='<b>Slot '+n+'</b><br><span style="font-size:11px">Kosong</span><br><button class="btn small" onclick="newGame(0,'+n+')">Mulai (Persija)</button>';}}},100);
+  return '<div class="card" style="text-align:center"><h2>LIGA MANAJER</h2></div><div class="card">'+slotsHTML+'</div>';
+}
+
+function newGame(myIdx,slot){
+  PID=0;state.activeSlot=slot||1;
+  state.teams=TEAM_DEFS.map(function(d){return {name:d.name,color:d.color,div:d.div,players:makeSquad(d.base),formation:'4-3-3',tactics:{mentality:'seimbang'},xi:[],budget:100e9};});
+  state.teams.forEach(function(t){autoPickXI(t,t.formation);});
+  state.myIdx=myIdx;state.myDiv=state.teams[myIdx].div;
+  state.fixtures={1:makeFixtures(getDivIndices(1)),2:makeFixtures(getDivIndices(2))};
+  state.round=0;state.season=1;state.view='main';state.mainTab='beranda';state.subTab='squad';
+  render();saveGame();
+}
+
+function renderMain(){
+  var my=state.teams[state.myIdx];var content='';
+  if(state.mainTab==='beranda'){content='<div class="card" style="text-align:center"><h3>Pekan '+(state.round+1)+'</h3><button class="btn primary" onclick="playRound()">MAIN PERTANDINGAN</button></div>';}
+  else if(state.mainTab==='tim'){content='<div class="card"><h3>Skuad</h3><table>'+my.players.map(function(p){return '<tr><td>'+p.name+'</td><td>'+p.pos+'</td><td>'+p.rating+'</td></tr>';}).join('')+'</table></div>';}
+  else if(state.mainTab==='kompetisi'){var t=getTable(state.myDiv);content='<div class="card"><h3>Klasemen</h3><table>'+t.map(function(r,i){return '<tr><td>'+(i+1)+'</td><td>'+r.team.name+'</td><td>'+r.Pts+'</td></tr>';}).join('')+'</table></div>';}
+  return '<div class="card"><h2>'+my.name+'</h2><div>Budget: '+formatIDR(my.budget)+'</div></div>'+content+renderBottomNav();
+}
+
+function renderBottomNav(){
+  return '<div class="bottom-nav"><button class="bnav-btn '+(state.mainTab==='beranda'?'active':'')+'" onclick="state.mainTab=\'beranda\';render()"><span class="ic">🏠</span><span>Home</span></button><button class="bnav-btn '+(state.mainTab==='tim'?'active':'')+'" onclick="state.mainTab=\'tim\';render()"><span class="ic">👥</span><span>Tim</span></button><button class="bnav-btn '+(state.mainTab==='kompetisi'?'active':'')+'" onclick="state.mainTab=\'kompetisi\';render()"><span class="ic">🏆</span><span>Liga</span></button><button class="bnav-btn" onclick="exitToMenu()"><span class="ic">🚪</span><span>Keluar</span></button></div>';
+}
+
+function renderMatch(){
+  var m=pendingMatch;if(!m)return '';
+  return '<div class="card"><h2>Match</h2><div style="font-size:30px;text-align:center">'+m.ctx.hg+' - '+m.ctx.ag+'</div><div>'+m.ctx.events.map(function(e){return '<div>'+e.text+'</div>';}).join('')+'</div><button class="btn primary" onclick="finishMatch()">Selesai</button></div>';
+}
+
+function finishMatch(){
+  pendingMatch.f.played=true;pendingMatch.f.hg=pendingMatch.ctx.hg;pendingMatch.f.ag=pendingMatch.ctx.ag;
+  finalizeMatch(pendingMatch.h,pendingMatch.a,pendingMatch.ctx);pendingMatch=null;nextRound();
+}
+
+function renderSeasonEnd(){return '<div class="card"><h2>Musim Berakhir</h2><button class="btn primary" onclick="state.season++;state.round=0;state.view=\'main\';render()">Lanjut</button></div>';}
+
+// INIT
+window.onload=function(){render();};4,32]],DEF:[[18,18],[18,32],[18,46]],MID:[[36,8],[36,20],[36,32],[36,44],[36,56]],FWD:[[54,24],[54,40]]},'5-3-2':{GK:[[4,32]],DEF:[[16,8],[16,20],[16,32],[16,44],[16,56]],MID:[[36,20],[36,32],[36,44]],FWD:[[54,24],[54,40]]}};
 var MENTALITY={'defensif':{label:'Defensif'},'seimbang':{label:'Seimbang'},'menyerang':{label:'Menyerang'}};
 var INJURY_TYPES=[{name:'Memar kaki',minW:1,maxW:2,severity:'ringan'},{name:'Cedera engkel',minW:1,maxW:4,severity:'ringan'},{name:'Cedera hamstring',minW:1,maxW:4,severity:'ringan'},{name:'Cedera otot',minW:2,maxW:4,severity:'ringan'},{name:'Cedera paha',minW:4,maxW:8,severity:'sedang'},{name:'Cedera bahu',minW:4,maxW:10,severity:'sedang'},{name:'Cedera kepala',minW:2,maxW:6,severity:'sedang'},{name:'Patah tulang ringan',minW:1,maxW:24,severity:'patah'},{name:'Patah tulang kaki',minW:6,maxW:24,severity:'patah'},{name:'Patah tulang tangan',minW:4,maxW:20,severity:'patah'},{name:'Cedera ACL',minW:24,maxW:96,severity:'acl'},{name:'Cedera ACL dan Meniskus',minW:32,maxW:96,severity:'acl'},{name:'Ruptur Ligamen',minW:24,maxW:80,severity:'acl'}];
 function injuryDurationWeeks(severity){var pool=INJURY_TYPES.filter(function(t){return t.severity===severity;});if(!pool.length) pool=INJURY_TYPES;var t=pick(pool);return {name:t.name,weeks:ri(t.minW,t.maxW),severity:t.severity};}
