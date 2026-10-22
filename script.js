@@ -824,6 +824,23 @@ function getMatchDate() {
     return d + ' ' + (monthNames[m] || 'Mei') + ' ' + (2026 + Math.floor(m / 9));
 }
 
+/* ==================== FUNGSI PENYELAMAT 2 ==================== */
+function marketValue(p){
+  var ageF = p.age<=23?1.4 : p.age<=27?1.2 : p.age<=30?0.9 : p.age<=33?0.5 : 0.25;
+  var baseValue = Math.max(3, Math.round((p.rating-40)*(p.rating-40)/30*ageF)) * 1e9;
+  return Math.round(baseValue * (state.inflation || 1.0));
+}
+
+function weeklyWage(p){
+  return Math.round((p.rating-40)*1.5e6);
+}
+
+function playerNeedsReducedContract(p){
+  if(p.age>=32) return true;
+  if(p.previousRating && p.previousRating > p.rating+3) return true;
+  return false;
+}
+
 window.onload = function() { 
   try { render(); } catch(e) { alert("Gagal memuat game: " + e.message); } 
 };
