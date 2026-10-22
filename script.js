@@ -292,8 +292,6 @@ function renderMain(){
       else if(state.subTab==='freeagent') content=renderFreeAgent();
       else if(state.subTab==='sponsor') content=renderSponsor();
       else if(state.subTab==='toko') content=renderToko();
-      else if(state.subTab==='ipo') content=renderIPO();
-      else if(state.subTab==='akuisisi') content=renderAkuisisi();
       else if(state.subTab==='stadion') content=renderStadion();
     }
     else if(state.mainTab==='kompetisi'){
