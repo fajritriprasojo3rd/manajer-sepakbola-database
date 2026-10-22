@@ -1,0 +1,215 @@
+// ==========================================
+// KONFIGURASI SUPABASE
+// ==========================================
+const SUPABASE_URL = 'https://ocqedmogvkcvfkjekayr.supabase.co'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jcWVkbW9ndmtjdmZramVrYXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2NTk0NzIsImV4cCI6MjEwODIzNTQ3Mn0.bQFVAIbaquQOj7sTT_CZQbZmgE7v2EmnpkE-zbW6w3Y';
+let _supabase = null;
+
+// ==========================================
+// UTILITAS
+// ==========================================
+var rnd = function(a,b){return Math.random()*(b-a)+a;};
+var ri = function(a,b){return Math.floor(rnd(a,b+1));};
+var pick = function(a){return a[Math.floor(Math.random()*a.length)];};
+var avg = function(a){return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:60;};
+function formatIDR(n){ if(n>=1e9) return 'Rp '+(n/1e9).toFixed(1)+' M'; return 'Rp '+(n/1e6).toFixed(1)+' jt'; }
+function nameInitials(name){ var p=name.split(' '); return p.length>1?(p[0][0]+p[1][0]).toUpperCase():p[0].slice(0,2).toUpperCase(); }
+function nameColor(name){ var c=['#e63946','#f4a261','#2a9d8f','#e9c46a','#457b9d','#5e60ce','#8ac926']; var h=0; for(var i=0;i<name.length;i++)h+=name.charCodeAt(i); return c[h%c.length]; }
+
+// ==========================================
+// DATA & STATE
+// ==========================================
+var TEAM_DEFS = [
+  {name:'Persija Jakarta', div:1, color:'#d90429', base:75},
+  {name:'Persib Bandung', div:1, color:'#1a3a8f', base:74},
+  {name:'Persebaya', div:1, color:'#2ecc71', base:73},
+  {name:'Arema FC', div:1, color:'#0033a0', base:72},
+  {name:'Bali United', div:1, color:'#e63946', base:72},
+  {name:'PSM Makassar', div:1, color:'#d90429', base:71},
+  {name:'Borneo FC', div:1, color:'#ff6b6b', base:70},
+  {name:'Madura United', div:1, color:'#e63946', base:70},
+  {name:'Persis Solo', div:1, color:'#e9c46a', base:69},
+  {name:'PSIS Semarang', div:1, color:'#118ab2', base:69},
+  {name:'Persita', div:1, color:'#f4a261', base:68},
+  {name:'PSS Sleman', div:1, color:'#e67e22', base:68}
+];
+var NAMA_DEPAN = ["Budi","Agus","Rizky","Fajar","Ilham","Dimas","Yoga","Reza","Fikri","Hafiz"];
+var NAMA_BELAKANG = ["Santoso","Wijaya","Saputra","Pratama","Hidayat","Nugroho","Kurniawan","Putra","Siregar"];
+
+var state = { view:'select', tab:'squad', myIdx:0, season:1, week:1, slot:1, teams:[], mySquad:[], league:[] };
+var PID = 0;
+
+// ==========================================
+// CLOUD DATABASE (SUPABASE)
+// ==========================================
+async function saveCloud(){
+  if(!_supabase) return;
+  try{
+    await _supabase.from('game_saves').upsert({ slot_id: 'slot_'+state.slot, game_data: { state: state, PID: PID } }, { onConflict: 'slot_id' });
+  }catch(e){ console.log("Save Err", e); }
+}
+
+async function loadCloud(slot){
+  if(!_supabase) return false;
+  try{
+    const { data } = await _supabase.from('game_saves').select('game_data').eq('slot_id', 'slot_'+slot).single();
+    if(data && data.game_data){
+      state = data.game_data.state;
+      PID = data.game_data.PID || 0;
+      return true;
+    }
+  }catch(e){ return false; }
+  return false;
+}
+
+async function getSlots(){
+  let s = [];
+  for(let i=1; i<=3; i++){
+    try{
+      let { data } = await _supabase.from('game_saves').select('game_data').eq('slot_id', 'slot_'+i).single();
+      if(data) s.push({ slot: i, team: data.game_data.state.teams[data.game_data.state.myIdx].name, week: data.game_data.state.week });
+      else s.push({ slot: i, team: null });
+    }catch(e){ s.push({ slot: i, team: null }); }
+  }
+  return s;
+}
+
+async function deleteCloud(slot){
+  await _supabase.from('game_saves').delete().eq('slot_id', 'slot_'+slot);
+  render();
+}
+
+// ==========================================
+// LOGIKA GAME
+// ==========================================
+function generateSquad(base){
+  let squad = [];
+  ["GK","GK","DEF","DEF","DEF","DEF","MID","MID","MID","MID","FWD","FWD","FWD"].forEach((pos, i) => {
+    squad.push({ id: PID++, name: pick(NAMA_DEPAN)+" "+pick(NAMA_BELAKANG), pos: pos, rating: ri(base-5, base+5), goals: 0 });
+  });
+  return squad;
+}
+
+function startNewGame(teamIdx, slot){
+  state.slot = slot;
+  state.myIdx = teamIdx;
+  state.teams = TEAM_DEFS.map(t => ({ ...t }));
+  state.mySquad = generateSquad(state.teams[teamIdx].base);
+  state.league = state.teams.map((t, i) => ({ name: t.name, idx: i, P: 0, W: 0, D: 0, L: 0, Pts: 0, GF: 0, GA: 0 }));
+  state.view = 'main';
+  state.tab = 'squad';
+  render();
+  saveCloud();
+}
+
+function simulateMatch(){
+  let myTeam = state.teams[state.myIdx];
+  let oppIdx = ri(0, state.teams.length - 1);
+  if(oppIdx === state.myIdx) return;
+  let opp = state.teams[oppIdx];
+  let myG = 0, oppG = 0, evs = [];
+
+  for(let m=1; m<=90; m++){
+    if(Math.random() < 0.04){
+      if(Math.random() < 0.5){ myG++; let sc = pick(state.mySquad.filter(p=>p.pos==='FWD'||p.pos==='MID')); sc.goals++; evs.push(`GOL! ${sc.name} (${myTeam.name}) menit ${m}`); }
+      else { oppG++; evs.push(`GOL! Pemain ${opp.name} menit ${m}`); }
+    }
+  }
+  
+  let myRow = state.league[state.myIdx];
+  let oppRow = state.league[oppIdx];
+  myRow.P++; oppRow.P++; myRow.GF+=myG; myRow.GA+=oppG; oppRow.GF+=oppG; oppRow.GA+=myG;
+  if(myG > oppG){ myRow.W++; myRow.Pts+=3; oppRow.L++; }
+  else if(myG < oppG){ oppRow.W++; oppRow.Pts+=3; myRow.L++; }
+  else { myRow.D++; oppRow.D++; myRow.Pts++; oppRow.Pts++; }
+
+  state.week++;
+  alert(`Skor Akhir: ${myG} - ${oppG}\n\n${evs.join('\n')}`);
+  render();
+  saveCloud();
+}
+
+// ==========================================
+// FUNGSI RENDER (TAMPILAN)
+// ==========================================
+function render(){
+  let app = document.getElementById('app');
+  if(!app) return;
+
+  if(state.view === 'select'){
+    app.innerHTML = `<div class="card" style="text-align:center"><h2>Memuat Slot...</h2></div>`;
+    getSlots().then(slots => {
+      let html = `<div class="card" style="text-align:center;padding:20px"><div style="font-size:40px">⚽</div><h2>LIGA MANAJER CLOUD</h2></div><div class="card"><h3>Slot Tersedia</h3>`;
+      slots.forEach(s => {
+        html += `<div style="background:#0f1a15;border:1px solid #24382e;padding:10px;border-radius:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+          <div><b style="color:#a8e6c1">Slot ${s.slot}</b><br><span style="font-size:11px;color:#8bb59f">${s.team ? s.team+' (Pekan '+s.week+')' : 'Kosong'}</span></div>
+          ${s.team ? `<div class="row"><button class="btn primary" onclick="resumeGame(${s.slot})">Lanjut</button><button class="btn danger" onclick="deleteCloud(${s.slot})">Hapus</button></div>` : `<button class="btn" onclick="showTeamSelect(${s.slot})">Mulai Baru</button>`}
+        </div>`;
+      });
+      html += `</div><div id="team-area"></div>`;
+      app.innerHTML = html;
+    });
+  } else if(state.view === 'main'){
+    let my = state.teams[state.myIdx];
+    let html = `<div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+      <div><h2 style="margin:0;color:${my.color}">${my.name}</h2><div style="font-size:11px;color:#8bb59f">Musim ${state.season} | Pekan ${state.week}</div></div>
+    </div>`;
+
+    if(state.tab === 'squad'){
+      html += `<div class="card"><h3>Skuad Pemain</h3><table><tr><th>Nama</th><th>Pos</th><th class="num">OVR</th><th class="num">Gol</th></tr>`;
+      state.mySquad.forEach(p => {
+        html += `<tr><td><span class="avatar" style="background:${nameColor(p.name)}">${nameInitials(p.name)}</span> ${p.name}</td><td><span style="color:#a8e6c1">${p.pos}</span></td><td class="num"><b>${p.rating}</b></td><td class="num">${p.goals}</td></tr>`;
+      });
+      html += `</table></div>`;
+    } else if(state.tab === 'league'){
+      let sorted = [...state.league].sort((a,b) => b.Pts - a.Pts || (b.GF-b.GA) - (a.GF-a.GA));
+      html += `<div class="card"><h3>Klasemen Liga</h3><table><tr><th>#</th><th>Tim</th><th class="num">P</th><th class="num">SG</th><th class="num">Pts</th></tr>`;
+      sorted.forEach((t,i) => {
+        html += `<tr class="${t.idx===state.myIdx?'mine':''}"><td>${i+1}</td><td>${t.name}</td><td class="num">${t.P}</td><td class="num">${t.GF-t.GA}</td><td class="num"><b>${t.Pts}</b></td></tr>`;
+      });
+      html += `</table></div>`;
+    } else if(state.tab === 'match'){
+      html += `<div class="card" style="text-align:center;"><h3>Pertandingan Pekan ${state.week}</h3><p style="margin:15px 0;font-size:12px;color:#8bb59f;">Siapkan tim Anda!</p><button class="btn primary" style="padding:15px 30px;" onclick="simulateMatch()">MAIN PERTANDINGAN</button></div>`;
+    }
+
+    html += `<div class="bottom-nav">
+      <button class="bnav-btn ${state.tab==='squad'?'active':''}" onclick="state.tab='squad';render()"><span class="ic">👥</span><span>Skuad</span></button>
+      <button class="bnav-btn ${state.tab==='league'?'active':''}" onclick="state.tab='league';render()"><span class="ic">🏆</span><span>Liga</span></button>
+      <button class="bnav-btn ${state.tab==='match'?'active':''}" onclick="state.tab='match';render()"><span class="ic">⚽</span><span>Main</span></button>
+      <button class="bnav-btn" onclick="state.view='select';render()"><span class="ic">🚪</span><span>Keluar</span></button>
+    </div>`;
+    app.innerHTML = html;
+  }
+}
+
+function showTeamSelect(slot){
+  let area = document.getElementById('team-area');
+  let html = `<div class="card"><h3>Pilih Tim (Slot ${slot})</h3><div class="teams">`;
+  TEAM_DEFS.forEach((t,i) => {
+    html += `<div class="team-card" onclick="startNewGame(${i}, ${slot})"><div class="bar" style="background:${t.color}"></div><div class="nm">${t.name}</div></div>`;
+  });
+  html += `</div></div>`;
+  area.innerHTML = html;
+}
+
+async function resumeGame(slot){
+  let ok = await loadCloud(slot);
+  if(ok) render();
+  else alert("Gagal memuat save.");
+}
+
+// ==========================================
+// INITIALIZATION
+// ==========================================
+document.addEventListener("DOMContentLoaded", function() {
+  try {
+    if (typeof supabase !== 'undefined') {
+      _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+      console.warn("Supabase CDN tidak termuat.");
+    }
+    render();
+  } catch(e) {
+    alert("Init Error: " + e.message);
+  }
+});
