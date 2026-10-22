@@ -253,6 +253,10 @@ function render(){
 
 function renderMain(){
   var my=state.teams[state.myIdx];
+  
+  // TAMBAHKAN BARIS INI: Memastikan tim selalu 11 orang & ada kiper
+  ensureValidStartingXI();
+  
   var win=getTransferWindowLabel();
   var headerCard='<div class="card" style="padding:14px">'+
     '<div style="display:flex;align-items:center;gap:12px">'+
