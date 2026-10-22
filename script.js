@@ -811,6 +811,19 @@ function addRandomNews(){ if(!state.news)state.news=[]; state.news.unshift({t:'B
 function toast(msg){var ex=document.querySelectorAll('.toast');for(var i=0;i<ex.length;i++)ex[i].remove();var d=document.createElement('div');d.className='toast';d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),2000);}
 function exitToMenu(){ saveGame(); state.view='select'; render(); }
 
+/* ==================== FUNGSI PENYELAMAT ==================== */
+function getTransferWindowLabel() {
+    return { open: true, label: 'Bursa Aktif', color: '#2ecc71' };
+}
+
+function getMatchDate() {
+    var baseDay = ((state.round * 7) + state.dayInWeek);
+    var m = Math.floor(baseDay / 28);
+    var d = (baseDay % 28) + 1;
+    var monthNames = ['Agu', 'Sep', 'Okt', 'Nov', 'Des', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei'];
+    return d + ' ' + (monthNames[m] || 'Mei') + ' ' + (2026 + Math.floor(m / 9));
+}
+
 window.onload = function() { 
   try { render(); } catch(e) { alert("Gagal memuat game: " + e.message); } 
 };
