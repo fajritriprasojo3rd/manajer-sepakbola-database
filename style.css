@@ -1,0 +1,33 @@
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0b120f;color:#e8f0ec;min-height:100vh;padding:12px;padding-bottom:85px}
+.wrap{max-width:940px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;margin-bottom:12px;border-radius:14px;background:linear-gradient(100deg,#1b3a2c,#12261d);border:1px solid #2c4a3a;position:sticky;top:6px;z-index:50}
+header h1{font-size:14px;font-weight:800;color:#a8e6c1;display:flex;align-items:center;gap:6px}
+.hdr-icons{display:flex;gap:4px;align-items:center}
+.hdr-icon{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#c8f0d8;cursor:pointer;font-size:14px}
+
+.card{background:#131e19;border:1px solid #24382e;border-radius:14px;padding:14px;margin-bottom:12px}
+h2{font-size:15px;margin-bottom:10px;color:#a8e6c1}
+h3{font-size:12px;color:#7fae94;margin:12px 0 8px;text-transform:uppercase}
+.btn{background:#1d3227;color:#c8f0d8;border:1px solid #2f5442;padding:8px 14px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:600;transition:.15s; font-family:inherit;}
+.btn.primary{background:linear-gradient(100deg,#2ecc71,#20a35a);color:#04160c;border:none}
+.btn.small{padding:5px 10px;font-size:11px}
+.btn.danger{background:#3a1d20;border-color:#e63946;color:#ff8f96}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(0deg,#0d1a14,#131e19);border-top:1px solid #24382e;display:flex;justify-content:space-around;padding:6px 4px;z-index:60}
+.bnav-btn{flex:1;background:none;border:none;color:#7fae94;font-size:10px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;font-family:inherit;}
+.bnav-btn .ic{font-size:22px}
+.bnav-btn.active{color:#2ecc71;background:rgba(46,204,113,.10);border-radius:10px}
+
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;padding:6px 4px;color:#7fae94;font-size:9px;text-transform:uppercase;border-bottom:1px solid #24382e}
+td{padding:8px 4px;border-bottom:1px solid #1b2a22}
+tr.mine td{background:rgba(46,204,113,.12);font-weight:700}
+.num{text-align:center}
+.avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;background:#3e7c76;display:inline-flex; margin-right:6px;}
+
+.teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.team-card{background:#16241d;border:1px solid #27402f;border-radius:10px;padding:10px;cursor:pointer;position:relative;overflow:hidden}
+.team-card .bar{position:absolute;left:0;top:0;bottom:0;width:4px}
+.team-card .nm{font-weight:700;font-size:12px;margin-left:6px} 
