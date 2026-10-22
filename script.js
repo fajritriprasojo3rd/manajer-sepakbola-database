@@ -860,31 +860,67 @@ function renderTransfer(){
 }
 
 function openBidModal(id, askingPrice, sellerIdx) {
-  var p = (sellerIdx === -1) ? state.marketPlayers.find(x => x.id === id) : getP(state.teams[sellerIdx], id);
-  if(!p && sellerIdx !== -1) {
-      // Cek di akademi AI
-      p = state.teams[sellerIdx].academy.find(x => x.id === id);
+  var p = null;
+  if (sellerIdx === -1) {
+    if (state.marketPlayers) {
+      p = state.marketPlayers.find(function(x) { return x.id === id; });
+    }
+  } else {
+    var team = state.teams[sellerIdx];
+    if (team) {
+      p = getP(team, id);
+      if (!p && team.academy && Array.isArray(team.academy)) {
+        p = team.academy.find(function(x) { return x.id === id; });
+      }
+    }
   }
-  if(!p) return;
+
+  if (!p) {
+    toast("Data pemain tidak ditemukan!");
+    return;
+  }
 
   var my = state.teams[state.myIdx];
   var baseChance = 30; 
-  if(p.rating >= 85) baseChance -= 15; else if(p.rating >= 80) baseChance -= 10; else if(p.rating >= 75) baseChance -= 5;
-  var streak = state.teamRecords.currentStreak || 0;
-  if(streak >= 5) baseChance += 15; else if(streak >= 3) baseChance += 10; else if(streak >= 1) baseChance += 5;
-  var t1 = getTable(state.myDiv); var pos = -1; for(var i=0; i<t1.length; i++){ if(t1[i].idx === state.myIdx){ pos = i+1; break; } }
-  if(pos === 1) baseChance += 20; else if(pos <= 3) baseChance += 15; else if(pos <= 6) baseChance += 5;
-  if(baseChance > 80) baseChance = 80; if(baseChance < 5) baseChance = 5;
+  if (p.rating >= 85) baseChance -= 15; 
+  else if (p.rating >= 80) baseChance -= 10; 
+  else if (p.rating >= 75) baseChance -= 5;
 
-  var oldModal = document.getElementById('createModal'); if(oldModal) oldModal.remove();
-  var modal=document.createElement('div'); modal.id='createModal';
+  var streak = state.teamRecords && state.teamRecords.currentStreak ? state.teamRecords.currentStreak : 0;
+  if (streak >= 5) baseChance += 15; 
+  else if (streak >= 3) baseChance += 10; 
+  else if (streak >= 1) baseChance += 5;
+
+  var t1 = getTable(state.myDiv); 
+  var pos = -1; 
+  for (var i = 0; i < t1.length; i++) { 
+    if (t1[i].idx === state.myIdx) { pos = i + 1; break; } 
+  }
+  if (pos === 1) baseChance += 20; 
+  else if (pos <= 3) baseChance += 15; 
+  else if (pos <= 6) baseChance += 5;
+
+  if (baseChance > 80) baseChance = 80; 
+  if (baseChance < 5) baseChance = 5;
+
+  var oldModal = document.getElementById('createModal'); 
+  if (oldModal) oldModal.remove();
   
+  var modal = document.createElement('div'); 
+  modal.id = 'createModal';
+  
+  var sellerName = "Pasar Bebas";
+  if (sellerIdx !== -1 && state.teams[sellerIdx]) {
+    sellerName = state.teams[sellerIdx].name;
+  }
+
   modal.innerHTML = '<div class="inner">'+
     '<div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">'+
       '<div style="width:44px;height:44px;border-radius:50%;background:'+nameColor(p.name)+';display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;font-size:16px;">'+nameInitials(p.name)+'</div>'+
-      '<div style="flex:1;"><h2 style="margin:0;font-size:16px;color:#a8e6c1;">'+p.name+'</h2><div style="font-size:11px;color:#8bb59f;">'+p.specificPos+' - '+p.age+' thn - OVR <b style="color:#a8e6c1">'+p.rating+'</b></div></div></div>'+
+      '<div style="flex:1;"><h2 style="margin:0;font-size:16px;color:#a8e6c1;">'+p.name+'</h2><div style="font-size:11px;color:#8bb59f;">'+p.specificPos+' - '+p.age+' thn - OVR <b style="color:#a8e6c1">'+p.rating+'</b></div></div>'+
+    '</div>'+
     '<div style="background:#16241d;padding:12px;border-radius:8px;font-size:11px;line-height:1.8;color:#a8e6c1;margin-bottom:15px;">'+
-      '<div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span><b>Klub Asal:</b></span><span style="color:#3498db;">'+(sellerIdx===-1 ? p.originClub : state.teams[sellerIdx].name + (state.teams[sellerIdx].academy.includes(p) ? ' Youth' : ''))+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span><b>Klub Asal:</b></span><span style="color:#3498db;">'+sellerName+'</span></div>'+
       '<div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span><b>Harga Pasar:</b></span><span style="color:#ffd700;">'+formatIDR(askingPrice)+'</span></div>'+
       '<div style="display:flex;justify-content:space-between;"><span><b>Peluang Dasar (Tim):</b></span><span style="color:'+(baseChance>=50?'#2ecc71':'#e63946')+'; font-weight:bold;">'+baseChance+'%</span></div>'+
     '</div>'+
@@ -895,9 +931,11 @@ function openBidModal(id, askingPrice, sellerIdx) {
     '<div class="row">'+
       '<button class="btn" onclick="document.getElementById(\'createModal\').remove()">Batal</button>'+
       '<button id="btnSubmitBid" class="btn primary" style="flex:1" onclick="submitBid('+p.id+','+sellerIdx+','+askingPrice+','+baseChance+')">Ajukan Tawaran</button>'+
-    '</div></div>';
+    '</div>'+
+  '</div>';
   document.body.appendChild(modal);
 }
+
 
 function submitBid(id, sellerIdx, askingPrice, baseChance) {
   var bidAmount = parseInt(document.getElementById('bidInput').value);
