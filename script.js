@@ -729,17 +729,56 @@ function getTable(div){
   t.sort(function(x,y){return y.Pts-x.Pts||(y.GF-y.GA)-(x.GF-x.GA);});return t;
 }
 function renderTable(){
-  var div = state.tableDiv || state.myDiv || 1; var t = getTable(div);
-  var toggle = '<div class="div-toggle"><button class="div-btn '+(div===1?'active':'')+'" onclick="setTableDiv(1)">Divisi 1</button><button class="div-btn '+(div===2?'active':'')+'" onclick="setTableDiv(2)">Divisi 2</button></div>';
+  var div = state.tableDiv || state.myDiv || 1;
+  var t = getTable(div);
+  
+  var toggle = '<div class="div-toggle">'+
+    '<button class="div-btn '+(div===1?'active':'')+'" onclick="setTableDiv(1)">Divisi 1</button>'+
+    '<button class="div-btn '+(div===2?'active':'')+'" onclick="setTableDiv(2)">Divisi 2</button>'+
+    '</div>';
+    
   var html = '<div class="card"><h2>Klasemen Divisi '+div+'</h2>' + toggle;
-  html += '<div class="scroll-box"><table><tr><th>#</th><th>Klub</th><th class="num">P</th><th class="num">SG</th><th class="num">Pts</th></tr>';
+  
+  html += '<div style="overflow-x:hidden; width:100%;">';
+  html += '<table style="width:100%; table-layout:fixed; font-size:10px; border-collapse:collapse;">';
+  
+  // Header Tabel (Tanpa SG)
+  html += '<tr>'+
+    '<th style="width:18px; padding:4px 1px; text-align:center;">#</th>'+
+    '<th style="padding:4px 2px; text-align:left;">Klub</th>'+
+    '<th style="width:20px; padding:4px 1px; text-align:center;" title="Main">M</th>'+
+    '<th style="width:20px; padding:4px 1px; text-align:center;" title="Menang">W</th>'+
+    '<th style="width:20px; padding:4px 1px; text-align:center;" title="Imbang">D</th>'+
+    '<th style="width:20px; padding:4px 1px; text-align:center;" title="Kalah">L</th>'+
+    '<th style="width:22px; padding:4px 1px; text-align:center;" title="Gol Masuk">GM</th>'+
+    '<th style="width:22px; padding:4px 1px; text-align:center;" title="Gol Kemasukan">GK</th>'+
+    '<th style="width:25px; padding:4px 1px; text-align:center;" title="Poin">Pts</th>'+
+    '</tr>';
+    
   t.forEach(function(r,i){
-    var isMine = r.idx === state.myIdx; var rowStyle = '';
-    if(div === 1 && i >= t.length - 3) rowStyle = 'background:rgba(230,57,70,0.1);';
-    if(div === 2 && i < 3) rowStyle = 'background:rgba(46,204,113,0.1);';
-    html += '<tr class="'+(isMine?'mine':'')+'" style="'+rowStyle+'"><td>'+(i+1)+'</td><td style="font-size:11px; font-weight:bold;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:'+r.team.color+'; margin-right:6px;"></span>'+r.team.name+'</td><td class="num" style="font-size:11px;">'+r.P+'</td><td class="num" style="font-size:11px;">'+(r.GF-r.GA>0?'+':'')+(r.GF-r.GA)+'</td><td class="num" style="font-weight:900; color:#a8e6c1; font-size:12px;">'+r.Pts+'</td></tr>';
+    var isMine = r.idx === state.myIdx;
+    var rowStyle = '';
+    if(div === 1 && i >= t.length - 3) rowStyle = 'background:rgba(230,57,70,0.1);'; 
+    if(div === 2 && i < 3) rowStyle = 'background:rgba(46,204,113,0.1);'; 
+    
+    html += '<tr class="'+(isMine?'mine':'')+'" style="'+rowStyle+'">'+
+      '<td style="text-align:center; padding:4px 1px;">'+(i+1)+'</td>'+
+      '<td style="font-size:10px; font-weight:bold; padding:4px 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">'+
+        '<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:'+r.team.color+'; margin-right:3px;"></span>'+
+        r.team.name+
+      '</td>'+
+      '<td style="text-align:center; padding:4px 1px;">'+r.P+'</td>'+
+      '<td style="text-align:center; padding:4px 1px; color:#2ecc71;">'+r.W+'</td>'+
+      '<td style="text-align:center; padding:4px 1px; color:#e9c46a;">'+r.D+'</td>'+
+      '<td style="text-align:center; padding:4px 1px; color:#e63946;">'+r.L+'</td>'+
+      '<td style="text-align:center; padding:4px 1px;">'+r.GF+'</td>'+
+      '<td style="text-align:center; padding:4px 1px;">'+r.GA+'</td>'+
+      '<td style="text-align:center; font-weight:bold; color:#a8e6c1; padding:4px 1px;">'+r.Pts+'</td>'+
+    '</tr>';
   });
-  return html + '</table></div></div>';
+  
+  html += '</table></div></div>';
+  return html;
 }
 
 function renderBestXI(){
