@@ -1898,14 +1898,37 @@ function startNewSeason(){
 // 20. INITIALIZATION & MENU AWAL
 // ==========================================
 function renderSelect(){
-  var slotsHTML='';[1,2,3].forEach(n=>{slotsHTML+='<div id="slot-card-'+n+'" style="background:#0f1a15;border:1px solid #24382e;border-radius:10px;padding:12px;margin-bottom:8px;"><div style="color:#8bb59f;font-size:12px;">Memuat Slot '+n+'...</div></div>';});
+  var slotsHTML = '';
+  [1,2,3].forEach(n => {
+    slotsHTML += '<div id="slot-card-'+n+'" style="background:#0f1a15;border:1px solid #24382e;border-radius:10px;padding:12px;margin-bottom:8px;">'+
+      '<div style="color:#8bb59f;font-size:12px;">Memuat Slot '+n+'...</div>'+
+    '</div>';
+  });
+
   setTimeout(async function(){ 
-    for(var i=0;i<3;i++){ 
-        var n=i+1; var info=await getSlotInfo(n); var el=document.getElementById('slot-card-'+n); if(!el) continue; 
-        if(info){ el.innerHTML='<b>Slot '+n+'</b><br><span style="font-size:11px">'+info.team+' (Pekan '+(info.round+1)+')</span><br><button class="btn primary" onclick="loadAndPlay('+n+')">LANJUTKAN</button>'; }
-        else { el.innerHTML='<b>Slot '+n+'</b><br><span style="font-size:11px">Kosong</span><br><button class="btn small" onclick="newGame(0,'+n+')">Mulai (Persija)</button>'; } 
+    for(var i = 0; i < 3; i++){ 
+        var n = i + 1; 
+        var el = document.getElementById('slot-card-' + n); 
+        if(!el) continue; 
+        
+        var info = null;
+        try {
+          // Timeout 1.2 detik agar jika Supabase lambat, langsung lempar fallback
+          var fetchPromise = getSlotInfo(n);
+          var timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 1200));
+          info = await Promise.race([fetchPromise, timeoutPromise]);
+        } catch(e) {
+          info = null;
+        }
+
+        if(info && info.team){ 
+          el.innerHTML = '<b>Slot '+n+'</b><br><span style="font-size:11px;color:#a8e6c1">'+info.team+' (Pekan '+(info.round+1)+')</span><br><button class="btn primary" style="margin-top:8px;width:100%" onclick="loadAndPlay('+n+')">LANJUTKAN</button>'; 
+        } else { 
+          el.innerHTML = '<b>Slot '+n+'</b><br><span style="font-size:11px;color:#8bb59f">Kosong / Baru</span><br><button class="btn small primary" style="margin-top:8px;width:100%" onclick="newGame(0,'+n+')">🎮 Mulai Game Baru (Persija)</button>'; 
+        } 
     } 
-  },100);
+  }, 100);
+
   return '<div class="card" style="text-align:center; padding:20px;"><div style="font-size:44px">&#9917;</div><h2 style="margin:8px 0;color:#a8e6c1">LIGA MANAJER</h2></div><div class="card">'+slotsHTML+'</div>';
 }
 
