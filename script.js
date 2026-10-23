@@ -2174,6 +2174,537 @@ function autoLineup() {
   saveGame();
 }
 
+// ============================================================================
+// ALL-IN-ONE PATCH GABUNGAN (LIGA MANAJER CLOUD)
+// Taruh seluruh kode ini tepat di atas: window.onload = function() { ... };
+// ============================================================================
+
+// 1. FUNGSI DASAR & NILAI PASAR PEMAIN
+function marketValue(p) {
+  var base = Math.pow(p.rating, 3.2) * 45000;
+  if (p.age < 23) base *= 1.25;
+  if (p.age > 30) base *= 0.6;
+  return Math.max(500e6, Math.round(base / 1e8) * 1e8);
+}
+
+// 2. CHECK & VALIDASI STARTING XI
+function checkXI(team) {
+  if (!team || !team.xi || team.xi.length !== 11) return false;
+  var gkCount = team.xi.filter(function(id) {
+    var p = getP(team, id);
+    return p && p.pos === 'GK';
+  }).length;
+  return gkCount === 1;
+}
+
+function isXIValid() {
+  var my = state.teams[state.myIdx];
+  return checkXI(my);
+}
+
+function ensureValidStartingXI() {
+  var my = state.teams[state.myIdx];
+  if (!my) return;
+  if (!my.xi || my.xi.length !== 11 || !checkXI(my)) {
+    autoPickXI(my, my.formation || '4-3-3');
+  }
+}
+
+// 3. AUTO XI (FIX 11/11 PEMAIN TERMASUK KIPER)
+function autoPickXI(team, formation) {
+  var f = FORMATIONS[formation || '4-3-3'];
+  var xi = [];
+  var used = {};
+  var sortFn = function(a, b) {
+      var aFit = a.stamina >= 50 && !a.injury && !(a.suspension && a.suspension > 0);
+      var bFit = b.stamina >= 50 && !b.injury && !(b.suspension && b.suspension > 0);
+      if (aFit && !bFit) return -1;
+      if (!aFit && bFit) return 1;
+      return b.rating - a.rating;
+  };
+
+  ['GK', 'DEF', 'MID', 'FWD'].forEach(function(cat) {
+    var c = team.players.filter(function(p) { return p.pos === cat && !used[p.id]; });
+    c.sort(sortFn);
+    var count = (typeof f[cat] === 'number') ? f[cat] : (f[cat] ? f[cat].length : 0);
+    for(var i = 0; i < count; i++) {
+      if (c[i]) {
+        xi.push(c[i].id);
+        used[c[i].id] = true;
+      }
+    }
+  });
+
+  if (xi.length < 11) {
+    var remaining = team.players.filter(function(p) { return !used[p.id]; });
+    remaining.sort(function(a, b) { return b.rating - a.rating; });
+    for(var i = 0; i < remaining.length && xi.length < 11; i++) {
+      xi.push(remaining[i].id);
+      used[remaining[i].id] = true;
+    }
+  }
+
+  team.xi = xi;
+}
+
+function autoLineup() {
+  var my = state.teams[state.myIdx];
+  if (!my) return;
+  autoPickXI(my, my.formation || '4-3-3');
+  toast("Starting XI berhasil diatur otomatis (11/11)!");
+  render();
+  saveGame();
+}
+
+// 4. BUFF TIM USER & PEMAIN BINTANG
+var originalTeamStats = teamStats;
+teamStats = function(team) {
+  var stats = originalTeamStats(team);
+  if (team === state.teams[state.myIdx] && team.xi) {
+    var starCount = 0;
+    team.xi.forEach(function(id) {
+      var p = getP(team, id);
+      if (p && (p.rating >= 80 || p.specialSkill)) {
+        starCount++;
+      }
+    });
+    var starPowerBonus = 1.30 + (starCount * 0.08); 
+    stats.atk *= starPowerBonus;
+    stats.def *= starPowerBonus;
+    stats.mid *= starPowerBonus;
+  }
+  return stats;
+};
+
+// 5. PEMULIHAN STAMINA 100% SETELAH LAGA
+var originalFinalizeMatch = finalizeMatch;
+finalizeMatch = function(home, away, ctx) {
+  originalFinalizeMatch(home, away, ctx);
+  var myTeam = state.teams[state.myIdx];
+  if (myTeam) {
+    myTeam.players.forEach(function(p) {
+      p.stamina = 100;
+    });
+  }
+};
+
+// 6. KEUGANGAN LAGA KANDANG
+function calcHomeMatchRevenue(home, away, hg, ag) {
+  var cap = home.stadium ? home.stadium.cap : 10000;
+  var att = Math.min(cap, Math.round(cap * rnd(0.6, 0.95)));
+  var ticketPrice = 50000;
+  var ticketRevenue = att * ticketPrice;
+  var tourRevenue = att * 10000;
+  var storeRevenue = att * 15000;
+  var hotelRevenue = att * 5000;
+  var grossRevenue = ticketRevenue + tourRevenue + storeRevenue + hotelRevenue;
+  var totalCost = grossRevenue * 0.2;
+  return {
+    attendance: att,
+    occ: (att / cap) * 100,
+    ticketRevenue: ticketRevenue,
+    tourRevenue: tourRevenue,
+    tourVisitors: Math.round(att * 0.3),
+    storeRevenue: storeRevenue,
+    storeBuyers: Math.round(att * 0.4),
+    hotelRevenue: hotelRevenue,
+    hotelNights: Math.round(att * 0.1),
+    grossRevenue: grossRevenue,
+    security: totalCost * 0.4,
+    cleaning: totalCost * 0.2,
+    opsCost: totalCost * 0.4,
+    police: 0,
+    totalCost: totalCost,
+    riot: false,
+    net: grossRevenue - totalCost
+  };
+}
+
+// 7. RENDER TRANSFER & BID MODAL FIX (DIKLIK TANPA STUCK)
+function renderTransfer(){
+  var famousPlayers = ["Lionel Messi","Cristiano Ronaldo","Kylian Mbappe","Erling Haaland","Neymar Jr","Kevin De Bruyne","Luka Modric","Robert Lewandowski","Mohamed Salah","Sadio Mane","Virgil van Dijk","Alisson Becker","Thibaut Courtois","Vinicius Jr","Rodri","Jude Bellingham","Harry Kane","Bruno Fernandes","Son Heung-min","Takefusa Kubo","Egy Maulana Vikri","Witan Sulaeman","Pratama Arhan","Marselino Ferdinan","Rizky Ridho","Fachruddin Aryanto","Nadeo Argawinata","Ragnar Oratmangoen","Rafael Struick","Thom Haye","Jay Idzes","Sandy Walsh","Jordi Amat","Saddil Ramdani","Ricky Kambuaya","Dendy Sulistyawan","Dimas Drajad"];
+  var clubOrigins = ["Real Madrid","Barcelona","Man City","Man Utd","Liverpool","Arsenal","Bayern Munchen","PSG","Juventus","AC Milan","Inter Milan","Chelsea","Tottenham","Borussia Dortmund","Ajax","Benfica","Porto","Al Hilal","Al Nassr","Persija Jakarta","Persib Bandung","Persebaya","Arema FC","Bali United","PSM Makassar","Borneo FC"];
+
+  if(!state.marketPlayers || state.marketPlayers.length === 0) {
+      state.marketPlayers = [];
+      var positions = ['GK', 'DEF', 'MID', 'FWD'];
+      var specificPos = {GK:['GK'],DEF:['CB','RB','LB','LWB','RWB'],MID:['RMF','LMF','CMF','DMF','AMF'],FWD:['SS','CF']};
+      for (let i = 0; i < 1000; i++) {
+          let pos = positions[i % 4]; 
+          let sp = pick(specificPos[pos]); 
+          let rating = ri(65, 89); 
+          var pName = i < famousPlayers.length ? famousPlayers[i] : generateIndonesianName();
+          var origin = pick(clubOrigins);
+          state.marketPlayers.push({id: 500000 + i, name: pName, pos: pos, specificPos: sp, age: ri(18, 33), rating: rating, originClub: origin, seasonGoals: 0, apps: 0, assists: 0, mvp: 0, contractYears: 3, weeklyWage: Math.round((rating - 40) * 1.5e6)});
+      }
+  }
+
+  var my = state.teams[state.myIdx];
+  var html = '<div class="card" style="padding:10px; overflow:hidden;"><h2>Pasar Transfer</h2>';
+  if(!state.transferFilter) state.transferFilter = 'SEMUA';
+  var filters = ['SEMUA', 'GK', 'DEF', 'MID', 'FWD'];
+  html += '<div style="display:flex;gap:5px;overflow-x:auto;margin-bottom:10px;padding-bottom:5px;">';
+  filters.forEach(f => { html += '<button class="btn small '+(state.transferFilter===f?'primary':'')+'" onclick="state.transferFilter=\''+f+'\';render()">'+f+'</button>'; });
+  html += '</div>';
+
+  var targets = [];
+  state.teams.forEach(function(t, i){ 
+      if(i === state.myIdx) return; 
+      t.players.forEach(function(p){ if(t.xi.indexOf(p.id) === -1) targets.push({p:p, t:t.name, i:i}); }); 
+      if (t.academy) t.academy.forEach(function(p) { targets.push({p:p, t:t.name + ' Youth', i:i}); });
+  });
+  if(state.marketPlayers) { state.marketPlayers.forEach(function(p) { targets.push({p:p, t:p.originClub || 'Pasar Bebas', i: -1}); }); }
+  
+  if(state.transferFilter !== 'SEMUA') { targets = targets.filter(x => x.p.pos === state.transferFilter); }
+  targets.sort((a,b) => b.p.rating - a.p.rating);
+  
+  html += '<div style="font-size:11px;color:#8bb59f;margin-bottom:10px;">Total Tersedia: <b>'+targets.length+'</b> pemain (Klik baris untuk menawar)</div>';
+  html += '<div class="scroll-box" style="max-height: 55vh; overflow-x: auto; padding-right:5px;"><table style="width:100%; min-width: 350px; table-layout: fixed;"><tr><th style="width: 40%;">Nama</th><th style="width: 25%;">Klub</th><th class="num" style="width: 10%;">OVR</th><th class="num" style="width: 25%;">Harga</th></tr>';
+  
+  targets.slice(0, 100).forEach(function(x){
+      var price = Math.round(marketValue(x.p) * (x.i === -1 ? 1.2 : 1.0)); 
+      var clubName = x.t; var clubColor = '#3498db';
+      if(clubName.includes('Youth')) clubColor = '#ffd700';
+
+      html += '<tr onclick="openBidModal('+x.p.id+','+price+','+x.i+')" style="cursor:pointer; border-bottom:1px solid #1b2a22;">'+
+        '<td style="padding: 8px 2px;"><div style="font-weight:bold; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">'+x.p.name+'</div><div style="font-size:9px;color:#8bb59f;">'+x.p.specificPos+' - '+x.p.age+'thn</div></td>'+
+        '<td style="font-size:10px; padding: 8px 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:'+clubColor+'; font-weight:'+(clubName.includes('Youth')?'bold':'normal')+';">'+clubName+'</td>'+
+        '<td class="num" style="color:#a8e6c1;font-weight:bold; font-size:11px; padding: 8px 2px;">'+x.p.rating+'</td>'+
+        '<td class="num" style="color:#e9c46a; font-size:10px; padding: 8px 2px; text-align:right;">'+formatIDRShort(price)+'</td>'+
+      '</tr>';
+  });
+  return html + '</table></div></div>';
+}
+
+function openBidModal(id, askingPrice, sellerIdx) {
+  var p = null;
+  if (sellerIdx === -1) {
+    if (state.marketPlayers) {
+      p = state.marketPlayers.find(function(x) { return x.id === id; });
+    }
+  } else {
+    var team = state.teams[sellerIdx];
+    if (team) {
+      p = getP(team, id);
+      if (!p && team.academy && Array.isArray(team.academy)) {
+        p = team.academy.find(function(x) { return x.id === id; });
+      }
+    }
+  }
+
+  if (!p) {
+    toast("Data pemain tidak ditemukan!");
+    return;
+  }
+
+  var my = state.teams[state.myIdx];
+  var baseChance = 30; 
+  if (p.rating >= 85) baseChance -= 15; 
+  else if (p.rating >= 80) baseChance -= 10; 
+  else if (p.rating >= 75) baseChance -= 5;
+
+  var streak = state.teamRecords && state.teamRecords.currentStreak ? state.teamRecords.currentStreak : 0;
+  if (streak >= 5) baseChance += 15; 
+  else if (streak >= 3) baseChance += 10; 
+  else if (streak >= 1) baseChance += 5;
+
+  var t1 = getTable(state.myDiv); 
+  var pos = -1; 
+  for (var i = 0; i < t1.length; i++) { 
+    if (t1[i].idx === state.myIdx) { pos = i + 1; break; } 
+  }
+  if (pos === 1) baseChance += 20; 
+  else if (pos <= 3) baseChance += 15; 
+  else if (pos <= 6) baseChance += 5;
+
+  if (baseChance > 80) baseChance = 80; 
+  if (baseChance < 5) baseChance = 5;
+
+  var oldModal = document.getElementById('createModal'); 
+  if (oldModal) oldModal.remove();
+  
+  var modal = document.createElement('div'); 
+  modal.id = 'createModal';
+  
+  var sellerName = "Pasar Bebas";
+  if (sellerIdx !== -1 && state.teams[sellerIdx]) {
+    sellerName = state.teams[sellerIdx].name;
+  }
+
+  modal.innerHTML = '<div class="inner">'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">'+
+      '<div style="width:44px;height:44px;border-radius:50%;background:'+nameColor(p.name)+';display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;font-size:16px;">'+nameInitials(p.name)+'</div>'+
+      '<div style="flex:1;"><h2 style="margin:0;font-size:16px;color:#a8e6c1;">'+p.name+'</h2><div style="font-size:11px;color:#8bb59f;">'+p.specificPos+' - '+p.age+' thn - OVR <b style="color:#a8e6c1">'+p.rating+'</b></div></div>'+
+    '</div>'+
+    '<div style="background:#16241d;padding:12px;border-radius:8px;font-size:11px;line-height:1.8;color:#a8e6c1;margin-bottom:15px;">'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span><b>Klub Asal:</b></span><span style="color:#3498db;">'+sellerName+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span><b>Harga Pasar:</b></span><span style="color:#ffd700;">'+formatIDR(askingPrice)+'</span></div>'+
+      '<div style="display:flex;justify-content:space-between;"><span><b>Peluang Dasar (Tim):</b></span><span style="color:'+(baseChance>=50?'#2ecc71':'#e63946')+'; font-weight:bold;">'+baseChance+'%</span></div>'+
+    '</div>'+
+    '<div id="bidMessage" style="display:none; padding:10px; margin-bottom:15px; border-radius:8px; font-size:11px; text-align:center; font-weight:bold;"></div>'+
+    '<label style="font-size:11px; color:#7fae94; margin-bottom:5px; display:block;">Nominal Tawaran (Rp)</label>'+
+    '<input id="bidInput" type="number" value="'+askingPrice+'" style="width:100%; padding:12px; background:#182720; border:1px solid #2f5442; border-radius:8px; color:#ffd700; font-size:16px; font-weight:bold; margin-bottom:5px;">'+
+    '<div style="font-size:9px; color:#e9c46a; margin-bottom:15px; text-align:center;">💡 Tawarkan hingga 3x lipat harga pasar untuk mode Sultan (Peluang 99%)</div>'+
+    '<div class="row">'+
+      '<button class="btn" onclick="document.getElementById(\'createModal\').remove()">Batal</button>'+
+      '<button id="btnSubmitBid" class="btn primary" style="flex:1" onclick="submitBid('+p.id+','+sellerIdx+','+askingPrice+','+baseChance+')">Ajukan Tawaran</button>'+
+    '</div>'+
+  '</div>';
+  document.body.appendChild(modal);
+}
+
+// 8. FIX GANTI MUSIM (START NEW SEASON ANTI STUCK)
+function startNewSeason(){
+  state.season++;
+  state.pialaNasional = null; 
+  state.lca = null; 
+  state.lca2 = null; 
+  state.pcAnswered = false; 
+  state.training = [];
+  state.incomingOffers = []; 
+  state.marketPlayers = []; 
+  
+  state.teams.forEach(function(t){
+    if(!t.academy) t.academy = [];
+    var baseR = avg(t.players.map(function(p){ return p.rating; })) || 60;
+    
+    t.players.forEach(function(p){
+        p.age++;
+        p.previousRating = p.rating;
+        var talent = p.talent || 1.0;
+        if(p.age<=21) p.rating += Math.round(ri(3,6)*talent);
+        else if(p.age<=25) p.rating += Math.round(ri(2,4)*talent);
+        else if(p.age<=28) p.rating += Math.round(ri(0,2)*talent);
+        else if(p.age<=31) p.rating += ri(-1,1);
+        else if(p.age<=35) p.rating -= ri(1,3);
+        else p.rating -= ri(2,4);
+        
+        p.rating = Math.max(38, Math.min(110, p.age<=28 ? (p.potential||110) : 110, p.rating));
+        p.seasonGoals = 0; p.apps = 0; p.assists = 0; p.yellow = 0; p.red = 0; p.cs = 0; p.mvp = 0; p.stamina = 100;
+        if(p.injury > 0){ 
+          p.injury = Math.max(0, p.injury - 4); 
+          if(p.injury === 0){ p.injuryName = ''; p.injurySeverity = ''; } 
+        }
+        p.ratings = []; p.avgRating = 0; 
+        if(p.contractYears > 0) p.contractYears--;
+        p.weeklyWage = Math.round((p.rating - 40) * 1.5e6);
+    });
+    
+    t.players = t.players.filter(function(p){ return p.age <= 45 && p.contractYears > 0; });
+    if(t.players.length < 16 && t !== state.teams[state.myIdx]) { 
+      for(var j = t.players.length; j < 16; j++) t.players.push(makeYouth(baseR)); 
+    }
+
+    t.academy.forEach(function(p){ 
+      p.age++; 
+      p.rating = Math.min(p.potential || 85, p.rating + Math.round(ri(2, 5) * (p.talent || 1.0))); 
+    });
+    
+    var promoted = []; 
+    var newAcademy = [];
+    t.academy.forEach(function(p) {
+        if(p.age >= 21) {
+            if(p.rating >= 85) { 
+              promoted.push(p); 
+              if(t === state.teams[state.myIdx]) state.news.unshift({t: "⬆️ Promosi Otomatis: " + p.name + " (OVR " + p.rating + ")", time: "Musim Baru"}); 
+            } else { 
+              p.contractYears = 0; 
+              if(!state.freeAgents) state.freeAgents = []; 
+              state.freeAgents.push(p); 
+              if(t === state.teams[state.myIdx]) state.news.unshift({t: "📤 Dilepas: " + p.name + " (Gagal Promosi)", time: "Musim Baru"}); 
+            }
+        } else { 
+          newAcademy.push(p); 
+        }
+    });
+    t.academy = newAcademy;
+    t.players = t.players.concat(promoted);
+    for(var i = 0; i < ri(1,3); i++) t.academy.push(makeYouth(baseR));
+
+    if(!checkXI(t) || t.xi.length < 11) autoPickXI(t, t.formation);
+    t.budget += (t.div === 1 ? ri(40,90) : ri(15,40)) * 1e9;
+  });
+
+  state.fanMood = Math.min(100, (state.fanMood || 50) + 10);
+  
+  var forms = Object.keys(FORMATIONS);
+  state.teams.forEach(function(t, i){ 
+    if(i === state.myIdx) return; 
+    if(Math.random() < 0.5){ t.formation = pick(forms); autoPickXI(t, t.formation); } 
+  });
+
+  state.fixtures = { 1: makeFixtures(getDivIndices(1)), 2: makeFixtures(getDivIndices(2)) };
+  state.round = 0; 
+  state.view = 'main'; 
+  state.mainTab = 'beranda'; 
+  state.subTab = 'squad'; 
+  state.tableDiv = state.myDiv;
+  
+  render(); 
+  saveGame();
+}
+
+// 9. SISTEM SAVE/LOAD HYBRID & PILIH TIM
+async function saveGame() {
+  if (!state.activeSlot) return;
+  try {
+    var data = { state: state, PID: PID };
+    localStorage.setItem('liga_manajer_slot_' + state.activeSlot, JSON.stringify(data));
+    if (_supabase) {
+      await _supabase.from('game_saves').upsert({ slot_id: 'slot_' + state.activeSlot, game_data: data }, { onConflict: 'slot_id' });
+    }
+  } catch(e) {
+    console.warn("Gagal save", e);
+  }
+}
+
+async function loadGame(n) {
+  try {
+    var localData = localStorage.getItem('liga_manajer_slot_' + n);
+    if (localData) {
+      var parsed = JSON.parse(localData);
+      Object.keys(parsed.state).forEach(function(k) { state[k] = parsed.state[k]; });
+      PID = parsed.PID || 0;
+      if (state.dayInWeek === undefined) state.dayInWeek = 1;
+      state.activeSlot = n;
+      return true;
+    }
+    if (_supabase) {
+      var d = await _supabase.from('game_saves').select('game_data').eq('slot_id', 'slot_' + n).single();
+      if (d.data && d.data.game_data) {
+        Object.keys(d.data.game_data.state).forEach(function(k) { state[k] = d.data.game_data.state[k]; });
+        PID = d.data.game_data.PID || 0;
+        if (state.dayInWeek === undefined) state.dayInWeek = 1;
+        state.activeSlot = n;
+        return true;
+      }
+    }
+  } catch(e) {
+    return false;
+  }
+  return false;
+}
+
+async function getSlotInfo(n) {
+  try {
+    var localData = localStorage.getItem('liga_manajer_slot_' + n);
+    if (localData) {
+      var parsed = JSON.parse(localData);
+      var s = parsed.state;
+      return { team: s.teams[s.myIdx] ? s.teams[s.myIdx].name : '?', div: s.teams[s.myIdx] ? s.teams[s.myIdx].div : 1, season: s.season, round: s.round, dayInWeek: s.dayInWeek || 1 };
+    }
+    if (_supabase) {
+      var d = await _supabase.from('game_saves').select('game_data').eq('slot_id', 'slot_' + n).single();
+      if (d.data && d.data.game_data) {
+        var s = d.data.game_data.state;
+        return { team: s.teams[s.myIdx] ? s.teams[s.myIdx].name : '?', div: s.teams[s.myIdx] ? s.teams[s.myIdx].div : 1, season: s.season, round: s.round, dayInWeek: s.dayInWeek || 1 };
+      }
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function deleteSlot(n) {
+  if (!confirm("Yakin ingin menghapus data di Slot " + n + "? Progress Anda akan hilang permanen.")) return;
+  localStorage.removeItem('liga_manajer_slot_' + n);
+  if (_supabase) {
+    try { await _supabase.from('game_saves').delete().eq('slot_id', 'slot_' + n); } catch(e) {}
+  }
+  toast("Slot " + n + " berhasil dihapus!");
+  render();
+}
+
+function promptTeamSelection(slot) {
+  var oldModal = document.getElementById('createModal'); if(oldModal) oldModal.remove();
+  var modal = document.createElement('div'); modal.id = 'createModal';
+  
+  var optionsHtml = '';
+  TEAM_DEFS.forEach(function(d, idx) {
+    optionsHtml += '<option value="'+idx+'">'+d.name+' (Divisi '+d.div+')</option>';
+  });
+
+  modal.innerHTML = '<div class="inner" style="max-width:400px;">'+
+    '<h2 style="color:#a8e6c1; margin-bottom:10px;">Pilih Tim Kamu</h2>'+
+    '<p style="font-size:11px; color:#8bb59f; margin-bottom:15px;">Pilih klub jagoanmu untuk memulai karier manajer di Slot '+slot+'</p>'+
+    '<select id="selectedTeamIdx" style="width:100%; padding:12px; background:#182720; border:1px solid #2f5442; border-radius:8px; color:#fff; font-size:14px; margin-bottom:15px;">'+
+      optionsHtml+
+    '</select>'+
+    '<div style="display:flex; gap:10px;">'+
+      '<button class="btn" style="flex:1;" onclick="document.getElementById(\'createModal\').remove()">Batal</button>'+
+      '<button class="btn primary" style="flex:1;" onclick="confirmNewGame('+slot+')">Mulai Karier</button>'+
+    '</div>'+
+  '</div>';
+  document.body.appendChild(modal);
+}
+
+function confirmNewGame(slot) {
+  var sel = document.getElementById('selectedTeamIdx');
+  var teamIdx = sel ? parseInt(sel.value) : 0;
+  document.getElementById('createModal').remove();
+  newGame(teamIdx, slot);
+}
+
+function renderSelect(){
+  var slotsHTML = '';
+  [1, 2, 3].forEach(n => {
+    slotsHTML += '<div id="slot-card-'+n+'" style="background:#0f1a15;border:1px solid #24382e;border-radius:10px;padding:12px;margin-bottom:10px;">'+
+      '<div style="color:#8bb59f;font-size:12px;">Memuat Slot '+n+'...</div>'+
+    '</div>';
+  });
+
+  setTimeout(async function(){ 
+    for(var i = 0; i < 3; i++){ 
+        var n = i + 1; 
+        var el = document.getElementById('slot-card-' + n); 
+        if(!el) continue; 
+        
+        var info = null;
+        try {
+          var fetchPromise = getSlotInfo(n);
+          var timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 1000));
+          info = await Promise.race([fetchPromise, timeoutPromise]);
+        } catch(e) {
+          info = null;
+        }
+
+        if(info && info.team){ 
+          el.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center;">'+
+            '<div><b>Slot '+n+'</b><br><span style="font-size:11px;color:#a8e6c1">'+info.team+' (Pekan '+(info.round+1)+')</span></div>'+
+            '<button class="btn small danger" style="background:#e63946;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-weight:bold;" onclick="deleteSlot('+n+')">🗑️ Hapus</button>'+
+          '</div>'+
+          '<button class="btn primary" style="margin-top:8px;width:100%" onclick="loadAndPlay('+n+')">LANJUTKAN</button>'; 
+        } else { 
+          el.innerHTML = '<b>Slot '+n+'</b><br><span style="font-size:11px;color:#8bb59f">Kosong / Belum Ada Game</span><br>'+
+          '<button class="btn small primary" style="margin-top:8px;width:100%" onclick="promptTeamSelection('+n+')">🎮 Mulai Game Baru (Pilih Tim)</button>'; 
+        } 
+    } 
+  }, 100);
+
+  return '<div class="card" style="text-align:center; padding:20px;">'+
+    '<div style="font-size:44px">&#9917;</div>'+
+    '<h2 style="margin:8px 0;color:#a8e6c1">LIGA MANAJER</h2>'+
+  '</div><div class="card">'+slotsHTML+'</div>';
+}
+
+// 10. NAVIGASI EXIT (🚪)
+function returnToSelect() {
+  state.view = 'select';
+  render();
+}
+
+setInterval(function() {
+  var elements = document.querySelectorAll('*');
+  for (var i = 0; i < elements.length; i++) {
+    if (elements[i].innerHTML === '🚪' && !elements[i].getAttribute('onclick')) {
+      elements[i].setAttribute('onclick', 'returnToSelect()');
+      elements[i].style.cursor = 'pointer';
+    }
+  }
+}, 1000);
+
+// ============================================================================
+// SAMPAI DI SINI (LETAKKAN window.onload DI BAWAH INI)
+// ============================================================================
 
 window.onload = function() { 
   try { render(); } catch(e) { alert("Gagal memuat game: " + e.message); } 
