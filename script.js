@@ -1869,67 +1869,107 @@ function finalizeSeason() {
   });
 }
 
+// ==========================================
+// PATCH PERBAIKAN: START NEW SEASON (ANTI STUCK)
+// ==========================================
 function startNewSeason(){
   state.season++;
-  state.pialaNasional=null; state.lca=null; state.lca2=null; state.pcAnswered=false; state.training=[];
-  state.incomingOffers = []; // Reset tawaran
-  state.marketPlayers = []; // Reset pasar bebas
+  state.pialaNasional = null; 
+  state.lca = null; 
+  state.lca2 = null; 
+  state.pcAnswered = false; 
+  state.training = [];
+  state.incomingOffers = []; 
+  state.marketPlayers = []; 
   
   state.teams.forEach(function(t){
-    var baseR=avg(t.players.map(function(p){return p.rating;}))||60;
+    // PENGAMAN: Jika tim belum punya akademi, buat array kosong dulu agar tidak error
+    if(!t.academy) t.academy = [];
+    
+    var baseR = avg(t.players.map(function(p){ return p.rating; })) || 60;
     
     // --- PROSES PEMAIN SENIOR & KONTRAK ---
     t.players.forEach(function(p){
         p.age++;
         p.previousRating = p.rating;
         var talent = p.talent || 1.0;
-        if(p.age<=21) p.rating+=Math.round(ri(3,6)*talent);
-        else if(p.age<=25) p.rating+=Math.round(ri(2,4)*talent);
-        else if(p.age<=28) p.rating+=Math.round(ri(0,2)*talent);
-        else if(p.age<=31) p.rating+=ri(-1,1);
-        else if(p.age<=35) p.rating-=ri(1,3);
-        else p.rating-=ri(2,4);
-        p.rating=Math.max(38,Math.min(110,p.age<=28?(p.potential||110):110,p.rating));
+        if(p.age<=21) p.rating += Math.round(ri(3,6)*talent);
+        else if(p.age<=25) p.rating += Math.round(ri(2,4)*talent);
+        else if(p.age<=28) p.rating += Math.round(ri(0,2)*talent);
+        else if(p.age<=31) p.rating += ri(-1,1);
+        else if(p.age<=35) p.rating -= ri(1,3);
+        else p.rating -= ri(2,4);
         
-        p.seasonGoals=0; p.apps=0; p.assists=0; p.yellow=0; p.red=0; p.cs=0; p.mvp=0; p.stamina=100;
-        if(p.injury>0){ p.injury=Math.max(0,p.injury-4); if(p.injury===0){ p.injuryName=''; p.injurySeverity=''; } }
-        p.ratings=[]; p.avgRating=0; 
-        if(p.contractYears>0) p.contractYears--;
+        p.rating = Math.max(38, Math.min(110, p.age<=28 ? (p.potential||110) : 110, p.rating));
+        
+        p.seasonGoals = 0; p.apps = 0; p.assists = 0; p.yellow = 0; p.red = 0; p.cs = 0; p.mvp = 0; p.stamina = 100;
+        if(p.injury > 0){ 
+          p.injury = Math.max(0, p.injury - 4); 
+          if(p.injury === 0){ p.injuryName = ''; p.injurySeverity = ''; } 
+        }
+        p.ratings = []; p.avgRating = 0; 
+        if(p.contractYears > 0) p.contractYears--;
+        
+        // Perhitungan Gaji yang Aman (Tanpa Error Fungsi)
         p.weeklyWage = Math.round((p.rating - 40) * 1.5e6);
-
     });
     
-    // Hapus pemain tua/kontrak habis
-    t.players = t.players.filter(function(p){ return p.age<=45 && p.contractYears>0; });
-    if(t.players.length<16 && t!==state.teams[state.myIdx]) { for(var j=t.players.length;j<16;j++) t.players.push(makeYouth(baseR)); }
+    // Hapus pemain tua / kontrak habis
+    t.players = t.players.filter(function(p){ return p.age <= 45 && p.contractYears > 0; });
+    if(t.players.length < 16 && t !== state.teams[state.myIdx]) { 
+      for(var j = t.players.length; j < 16; j++) t.players.push(makeYouth(baseR)); 
+    }
 
-    // --- EVALUASI AKADEMI (PROMOSI/LEPAS) ---
-    t.academy.forEach(function(p){ p.age++; p.rating = Math.min(p.potential || 85, p.rating + Math.round(ri(2, 5) * (p.talent || 1.0))); });
-    var promoted = []; var newAcademy = [];
+    // --- EVALUASI AKADEMI ---
+    t.academy.forEach(function(p){ 
+      p.age++; 
+      p.rating = Math.min(p.potential || 85, p.rating + Math.round(ri(2, 5) * (p.talent || 1.0))); 
+    });
+    
+    var promoted = []; 
+    var newAcademy = [];
     t.academy.forEach(function(p) {
         if(p.age >= 21) {
-            if(p.rating >= 85) { promoted.push(p); if(t === state.teams[state.myIdx]) state.news.unshift({t: "⬆️ Promosi Otomatis: " + p.name + " (OVR " + p.rating + ")", time: "Musim Baru"}); }
-            else { p.contractYears = 0; if(!state.freeAgents) state.freeAgents = []; state.freeAgents.push(p); if(t === state.teams[state.myIdx]) state.news.unshift({t: "📤 Dilepas: " + p.name + " (Gagal Promosi)", time: "Musim Baru"}); }
-        } else { newAcademy.push(p); }
+            if(p.rating >= 85) { 
+              promoted.push(p); 
+              if(t === state.teams[state.myIdx]) state.news.unshift({t: "⬆️ Promosi Otomatis: " + p.name + " (OVR " + p.rating + ")", time: "Musim Baru"}); 
+            } else { 
+              p.contractYears = 0; 
+              if(!state.freeAgents) state.freeAgents = []; 
+              state.freeAgents.push(p); 
+              if(t === state.teams[state.myIdx]) state.news.unshift({t: "📤 Dilepas: " + p.name + " (Gagal Promosi)", time: "Musim Baru"}); 
+            }
+        } else { 
+          newAcademy.push(p); 
+        }
     });
     t.academy = newAcademy;
     t.players = t.players.concat(promoted);
-    for(var i=0;i<ri(1,3);i++) t.academy.push(makeYouth(baseR));
+    for(var i = 0; i < ri(1,3); i++) t.academy.push(makeYouth(baseR));
 
-    // Reset formasi
-    if(!checkXI(t)||t.xi.length<11) autoPickXI(t,t.formation);
-    t.budget += (t.div===1?ri(40,90):ri(15,40))*1e9;
+    // Reset formasi & pastikan 11 pemain valid
+    if(!checkXI(t) || t.xi.length < 11) autoPickXI(t, t.formation);
+    t.budget += (t.div === 1 ? ri(40,90) : ri(15,40)) * 1e9;
   });
 
-  state.fanMood=Math.min(100,(state.fanMood||50)+10);
+  state.fanMood = Math.min(100, (state.fanMood || 50) + 10);
   
-  // Acak formasi AI
-  var forms=Object.keys(FORMATIONS);
-  state.teams.forEach(function(t,i){ if(i===state.myIdx) return; if(Math.random()<0.5){ t.formation=pick(forms); autoPickXI(t,t.formation); } });
+  // Acak formasi AI untuk musim baru
+  var forms = Object.keys(FORMATIONS);
+  state.teams.forEach(function(t, i){ 
+    if(i === state.myIdx) return; 
+    if(Math.random() < 0.5){ t.formation = pick(forms); autoPickXI(t, t.formation); } 
+  });
 
-  state.fixtures={1:makeFixtures(getDivIndices(1)),2:makeFixtures(getDivIndices(2))};
-  state.round=0; state.view='main'; state.mainTab='beranda'; state.subTab='squad'; state.tableDiv=state.myDiv;
-  render(); saveGame();
+  state.fixtures = { 1: makeFixtures(getDivIndices(1)), 2: makeFixtures(getDivIndices(2)) };
+  state.round = 0; 
+  state.view = 'main'; 
+  state.mainTab = 'beranda'; 
+  state.subTab = 'squad'; 
+  state.tableDiv = state.myDiv;
+  
+  render(); 
+  saveGame();
 }
 
 // ==========================================
